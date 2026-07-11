@@ -32,6 +32,7 @@ builder.Services.AddRateLimiter(options =>
 });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddSingleton<QBittorrentClient>();
 
 // Create app and configure features
 WebApplication app = builder.Build();
