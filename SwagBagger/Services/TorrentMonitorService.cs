@@ -128,9 +128,6 @@ namespace SwagBagger.Services
         {
             try
             {
-                // Fetch the real on-disk content path before deleting, since qBittorrent can no longer answer this once the torrent is removed
-                string contentPath = await qBittorrentClient.GetContentPathAsync(torrent.Hash);
-
                 // Remove the torrent from qBittorrent immediately to stop seeding, without touching the downloaded files
                 await qBittorrentClient.DeleteTorrentAsync(torrent.Hash);
 
@@ -145,7 +142,7 @@ namespace SwagBagger.Services
                 // Mark the torrent as moving so the UI can reflect it immediately, rather than waiting for the next poll
                 string containerDownloadsPath = configuration["QBittorrent:ContainerDownloadsPath"] ?? "/downloads";
                 string hostDownloadsPath = configuration["QBittorrent:HostDownloadsPath"] ?? throw new InvalidOperationException("QBittorrent:HostDownloadsPath is not configured.");
-                string translatedSourcePath = contentPath.Replace(containerDownloadsPath, hostDownloadsPath);
+                string translatedSourcePath = torrent.ContentPath.Replace(containerDownloadsPath, hostDownloadsPath);
                 string targetPath = Path.Combine(destinationFolder, Path.GetFileName(translatedSourcePath));
                 MovingHashes.Add(torrent.Hash);
                 StatusChanged?.Invoke();

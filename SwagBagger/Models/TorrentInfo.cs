@@ -54,5 +54,11 @@ namespace SwagBagger.Models
         /// </summary>
         [JsonPropertyName("dlspeed")]
         public long DownloadSpeed { get; init; }
+
+        /// <summary>
+        /// The absolute on-disk path of the torrent's content (root path for multi-file torrents, absolute file path for single-file torrents), reflecting any filename sanitization qBittorrent applied when saving.
+        /// </summary>
+        [JsonPropertyName("content_path")]
+        public string ContentPath { get; init; } = string.Empty;
     }
 }
