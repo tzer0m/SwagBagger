@@ -107,7 +107,7 @@ namespace SwagBagger.Services
             // Checks for any newly completed torrents and hands them off to be processed in the background, so a large move does not stall this poll loop
             foreach (TorrentInfo torrent in torrents)
             {
-                bool isComplete = torrent.Progress >= 1.0;
+                bool isComplete = torrent.State is "stalledUP" or "uploading" or "forcedUP";
                 bool alreadyProcessed = ProcessedHashes.Contains(torrent.Hash);
                 if (isComplete && !alreadyProcessed)
                 {
