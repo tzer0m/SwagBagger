@@ -78,6 +78,14 @@
     {
         <div class="table-responsive">
             <table class="table table-dark table-hover align-middle">
+                <colgroup>
+                    <col style="width: 32%;" />
+                    <col style="width: 10%;" />
+                    <col style="width: 14%;" />
+                    <col style="width: 20%;" />
+                    <col style="width: 10%;" />
+                    <col style="width: 14%;" />
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -85,7 +93,7 @@
                         <th>Status</th>
                         <th>Progress</th>
                         <th>Seeds</th>
-                        <th>Download Speed</th>
+                        <th>Speed</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -93,14 +101,26 @@
                     {
                         bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
                         <tr>
-                            <td>@torrent.Name</td>
+                            <td class="text-truncate">@torrent.Name</td>
                             <td>@FormatBytes(torrent.Size)</td>
                             <td>
                                 <span class="status-badge @(moving ? "status-moving" : GetStatusClass(torrent.State))">
-                                    @(moving ? "Moving" : torrent.State)
+                                    @(moving ? "Moving" : GetStatusLabel(torrent.State))
                                 </span>
                             </td>
-                            <td>@(moving ? "-" : $"{torrent.Progress:P0}")</td>
+                            <td>
+                                @if (moving)
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    <div class="progress-track">
+                                        <div class="progress-fill" style="width: @($"{torrent.Progress:P0}")"></div>
+                                        <span class="progress-label">@($"{torrent.Progress:P0}")</span>
+                                    </div>
+                                }
+                            </td>
                             <td>@(moving ? "-" : torrent.NumSeeds.ToString())</td>
                             <td>@(moving ? "-" : FormatSpeed(torrent.DownloadSpeed))</td>
                         </tr>
@@ -204,6 +224,31 @@
         "error" or "missingFiles" => "status-error",
         "pausedDL" or "pausedUP" => "status-paused",
         _ => "status-default"
+    };
+
+    /// <summary>
+    /// Maps a qBittorrent state string to a human-friendly display label.
+    /// </summary>
+    /// <param name="state">The raw qBittorrent state string.</param>
+    private static string GetStatusLabel(string state) => state switch
+    {
+        "downloading" => "Downloading",
+        "metaDL" => "Fetching Metadata",
+        "forcedDL" => "Downloading",
+        "stalledUP" => "Seeding",
+        "uploading" => "Seeding",
+        "forcedUP" => "Seeding",
+        "error" => "Error",
+        "missingFiles" => "Missing Files",
+        "pausedDL" => "Paused",
+        "pausedUP" => "Paused",
+        "queuedDL" => "Queued",
+        "queuedUP" => "Queued",
+        "checkingDL" => "Checking",
+        "checkingUP" => "Checking",
+        "allocating" => "Allocating",
+        "stalledDL" => "Stalled",
+        _ => state
     };
 
     /// <summary>
