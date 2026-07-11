@@ -70,7 +70,11 @@
 <div class="downloads-card">
     <h2>Downloads</h2>
 
-    @if (TorrentMonitorService.CurrentTorrents.Count == 0)
+    @{
+        List<SwagBagger.Models.TorrentInfo> displayTorrents = TorrentMonitorService.GetDisplayTorrents().ToList();
+    }
+
+    @if (displayTorrents.Count == 0)
     {
         <p class="text-muted">No active downloads.</p>
     }
@@ -99,9 +103,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (SwagBagger.Models.TorrentInfo torrent in TorrentMonitorService.CurrentTorrents)
+                    @foreach (SwagBagger.Models.TorrentInfo torrent in displayTorrents)
                     {
                         bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
+                        double displayProgress = moving ? TorrentMonitorService.GetMoveProgress(torrent.Hash) : torrent.Progress;
                         <tr>
                             <td class="text-truncate">@(TorrentMonitorService.GetDisplayName(torrent.Hash) ?? "-")</td>
                             <td class="text-truncate">@torrent.Name</td>
@@ -112,17 +117,10 @@
                                 </span>
                             </td>
                             <td>
-                                @if (moving)
-                                {
-                                    <span>-</span>
-                                }
-                                else
-                                {
-                                    <div class="progress-track">
-                                        <div class="progress-fill" style="width: @($"{torrent.Progress:P0}")"></div>
-                                        <span class="progress-label">@($"{torrent.Progress:P0}")</span>
-                                    </div>
-                                }
+                                <div class="progress-track">
+                                    <div class="progress-fill @(moving ? "progress-fill-moving" : "")" style="width: @($"{displayProgress:P0}")"></div>
+                                    <span class="progress-label">@($"{displayProgress:P0}")</span>
+                                </div>
                             </td>
                             <td>@(moving ? "-" : torrent.NumSeeds.ToString())</td>
                             <td>@(moving ? "-" : FormatSpeed(torrent.DownloadSpeed))</td>

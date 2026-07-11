@@ -237,6 +237,10 @@ body {
     transition: width 0.3s ease;
 }
 
+.progress-fill-moving {
+    background-color: #d29922;
+}
+
 .progress-label {
     position: absolute;
     top: 0;
