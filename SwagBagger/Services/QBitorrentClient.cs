@@ -72,6 +72,31 @@ namespace SwagBagger.Services
         }
 
         /// <summary>
+        /// Retrieves the actual on-disk content path for a torrent, as reported by qBittorrent - this reflects any filename sanitization qBittorrent applied when saving, unlike the "name" field from torrents/info.
+        /// </summary>
+        /// <param name="hash">The torrent's info hash.</param>
+        /// <returns>The full on-disk path to the torrent's content.</returns>
+        public async Task<string> GetContentPathAsync(string hash)
+        {
+            // Check if the session cookie is set, then read qBittorrent connection settings from configuration
+            EnsureLoggedIn();
+            string baseUrl = configuration["QBittorrent:BaseUrl"] ?? throw new InvalidOperationException("QBittorrent:BaseUrl is not configured.");
+
+            // Request the torrent's properties, which include the real on-disk content path
+            using HttpRequestMessage request = new(HttpMethod.Get, $"{baseUrl}/api/v2/torrents/properties?hash={hash}");
+            request.Headers.Add("Cookie", SessionCookie);
+
+            // Send the request and ensure it was successful
+            HttpResponseMessage response = await HttpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            // Get the content path from the response JSON
+            string json = await response.Content.ReadAsStringAsync();
+            using JsonDocument document = JsonDocument.Parse(json);
+            return document.RootElement.GetProperty("content_path").GetString() ?? throw new InvalidOperationException("qBittorrent did not return a content_path for the torrent.");
+        }
+
+        /// <summary>
         /// Retrieves the current list of torrents and their status from qBittorrent.
         /// </summary>
         /// <returns>The raw JSON array of torrent info returned by qBittorrent.</returns>

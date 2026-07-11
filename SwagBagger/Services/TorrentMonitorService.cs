@@ -141,30 +141,30 @@ namespace SwagBagger.Services
                 // Mark the torrent as moving so the UI can reflect it immediately, rather than waiting for the next poll
                 string containerDownloadsPath = configuration["QBittorrent:ContainerDownloadsPath"] ?? "/downloads";
                 string hostDownloadsPath = configuration["QBittorrent:HostDownloadsPath"] ?? throw new InvalidOperationException("QBittorrent:HostDownloadsPath is not configured.");
-                string translatedSavePath = torrent.SavePath.Replace(containerDownloadsPath, hostDownloadsPath);
-                string sourcePath = Path.Combine(translatedSavePath, torrent.Name);
-                string targetPath = Path.Combine(destinationFolder, torrent.Name);
+                string contentPath = await qBittorrentClient.GetContentPathAsync(torrent.Hash);
+                string translatedSourcePath = contentPath.Replace(containerDownloadsPath, hostDownloadsPath);
+                string targetPath = Path.Combine(destinationFolder, Path.GetFileName(translatedSourcePath));
                 MovingHashes.Add(torrent.Hash);
                 StatusChanged?.Invoke();
 
                 // Copy the files to the registered Plex destination, then delete the local source once the copy has succeeded
-                if (Directory.Exists(sourcePath))
+                if (Directory.Exists(translatedSourcePath))
                 {
-                    CopyDirectory(sourcePath, targetPath);
-                    Directory.Delete(sourcePath, recursive: true);
+                    CopyDirectory(translatedSourcePath, targetPath);
+                    Directory.Delete(translatedSourcePath, recursive: true);
                 }
-                else if (File.Exists(sourcePath))
+                else if (File.Exists(translatedSourcePath))
                 {
-                    File.Copy(sourcePath, targetPath, overwrite: true);
-                    File.Delete(sourcePath);
+                    File.Copy(translatedSourcePath, targetPath, overwrite: true);
+                    File.Delete(translatedSourcePath);
                 }
                 else
                 {
-                    logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", torrent.Name, sourcePath);
+                    logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", torrent.Name, translatedSourcePath);
                     return;
                 }
                 logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", torrent.Name, targetPath);
-
+                
                 // Trigger a Plex library scan for whichever library the file was moved into
                 if (destinationFolder.Contains("/Movies/"))
                 {
