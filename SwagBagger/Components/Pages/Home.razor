@@ -1,7 +1,12 @@
 ﻿@page "/"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SwagBagger</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>SwagBagger</h1>
 
-Welcome to your new app.
+<p>Submit form coming soon.</p>
+
+<form method="post" action="/account/logout">
+    <button type="submit">Log out</button>
+</form>

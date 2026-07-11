@@ -5,10 +5,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>2d063b33-fc94-4d44-aae0-9fcb103d92a8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Otp.NET" Version="1.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Scripts\" />
   </ItemGroup>
 
 </Project>

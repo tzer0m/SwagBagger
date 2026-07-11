@@ -1,0 +1,44 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Login - SwagBagger</PageTitle>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="turnstile.js"></script>
+
+<h1>SwagBagger</h1>
+
+<form method="post" action="/account/login">
+    <input type="text" id="code" name="code" maxlength="6" autocomplete="one-time-code" autofocus />
+
+    <div id="turnstile-widget"></div>
+
+    <button type="submit">Log In</button>
+
+    @if (Failed)
+    {
+        <p style="color:red">Invalid code, try again.</p>
+    }
+</form>
+
+@code {
+    /// <summary>
+    /// Indicates whether the most recent login attempt failed, driven by the "failed" query string parameter.
+    /// </summary>
+    [SupplyParameterFromQuery]
+    private bool Failed { get; set; }
+
+    /// <summary>
+    /// Renders the Turnstile widget via JS interop after Blazor's own render pass completes, avoiding a DOM race between Blazor and Turnstile's auto-render script.
+    /// </summary>
+    /// <param name="firstRender">True only on the component's first render.</param>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("renderTurnstile", "turnstile-widget", "0x4AAAAAADz0s9rj6EHbV54i");
+        }
+    }
+}
