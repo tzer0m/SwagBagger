@@ -8,20 +8,26 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="turnstile.js"></script>
 
-<h1>SwagBagger</h1>
+<div class="login-page">
+    <div class="login-card">
+        <img src="logo.svg" alt="SwagBagger" class="login-logo" />
+        <h1>SwagBagger</h1>
+        <p class="login-subtitle">Enter Login Code</p>
 
-<form method="post" action="/account/login">
-    <input type="text" id="code" name="code" maxlength="6" autocomplete="one-time-code" autofocus />
+        <form method="post" action="/account/login" class="login-form">
+            <input type="text" id="code" name="code" maxlength="6" autocomplete="one-time-code" autofocus placeholder="000000" class="form-control login-code-input" />
 
-    <div id="turnstile-widget"></div>
+            <div id="turnstile-widget"></div>
 
-    <button type="submit">Log In</button>
+            <button type="submit" class="btn btn-primary w-100">Log In</button>
 
-    @if (Failed)
-    {
-        <p style="color:red">Invalid code, try again.</p>
-    }
-</form>
+            @if (Failed)
+            {
+                <p class="login-error">Invalid code, try again.</p>
+            }
+        </form>
+    </div>
+</div>
 
 @code {
     /// <summary>

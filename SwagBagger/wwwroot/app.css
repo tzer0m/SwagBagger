@@ -1,3 +1,253 @@
+/* ==========================================================================
+   Theme Variables
+   ========================================================================== */
+:root {
+    --accent-green: #39d353;
+    --accent-green-dim: #2ea043;
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --border-color: #21262d;
+    --text-primary: #e6edf3;
+    --text-muted: #8b949e;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Shared components (used across multiple pages)
+   ========================================================================== */
+.btn-primary {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #0d1117;
+}
+
+    .btn-primary:hover {
+        background-color: var(--accent-green-dim);
+        border-color: var(--accent-green-dim);
+    }
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+    .btn-icon:hover {
+        color: var(--accent-green);
+        background-color: var(--bg-secondary);
+    }
+
+/* ==========================================================================
+   MainLayout.razor (header / app shell)
+   ========================================================================== */
+.app-shell {
+    min-height: 100vh;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.app-header {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0;
+}
+
+.app-logo {
+    width: 32px;
+    height: 32px;
+}
+
+.app-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--accent-green);
+}
+
+.navbar-brand {
+    text-decoration: none;
+}
+
+.app-main {
+    padding: 2rem 1.5rem;
+}
+
+/* ==========================================================================
+   Login.razor
+   ========================================================================== */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-primary);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 360px;
+    padding: 2.5rem;
+    text-align: center;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.login-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.login-form {
+    max-width: 260px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.login-code-input {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 0.5rem;
+    font-family: monospace;
+    width: 100%;
+}
+
+.login-error {
+    color: #f85149;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+}
+
+#turnstile-widget {
+    display: flex;
+    justify-content: center;
+    transform: scale(0.87);
+    transform-origin: top center;
+    margin-top: 0.1rem;
+    margin-bottom: -0.7rem;
+}
+
+/* ==========================================================================
+   Home.razor (submit form + downloads table)
+   ========================================================================== */
+.submit-card,
+.downloads-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+    .submit-card h2,
+    .downloads-card h2 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+.submit-error {
+    color: #f85149;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-downloading {
+    background-color: rgba(56, 139, 253, 0.15);
+    color: #58a6ff;
+}
+
+.status-seeding {
+    background-color: rgba(57, 211, 83, 0.15);
+    color: var(--accent-green);
+}
+
+.status-moving {
+    background-color: rgba(219, 171, 9, 0.15);
+    color: #d29922;
+}
+
+.status-error {
+    background-color: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+}
+
+.status-paused,
+.status-default {
+    background-color: rgba(139, 148, 158, 0.15);
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Error.razor / NotFound.razor / TooManyAttempts.razor (shared status page layout)
+   ========================================================================== */
+.status-page {
+    max-width: 480px;
+    margin: 4rem auto;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.status-icon {
+    font-size: 3rem;
+    color: var(--accent-green);
+    margin-bottom: 1rem;
+}
+
+.status-subtitle {
+    color: var(--text-muted);
+}
+
+.status-detail {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.status-dev-notice {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    text-align: left;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Blazor framework defaults (validation, error boundary) - unchanged from template
+   ========================================================================== */
 h1:focus {
     outline: none;
 }

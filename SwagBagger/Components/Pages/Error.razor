@@ -1,28 +1,38 @@
 ﻿@page "/Error"
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Error - SwagBagger</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="status-page">
+    <i class="bi bi-exclamation-triangle-fill status-icon"></i>
+    <h1>Error</h1>
+    <p class="status-subtitle">An error occurred while processing your request.</p>
 
-@if (ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
-    </p>
-}
+    @if (ShowRequestId)
+    {
+        <p class="status-detail">
+            <strong>Request ID:</strong> <code>@RequestId</code>
+        </p>
+    }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+    <a href="/" class="btn btn-primary mt-3">Back to SwagBagger</a>
+
+    @if (IsDevelopment)
+    {
+        <div class="status-dev-notice">
+            <h3>Development Mode</h3>
+            <p>
+                Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+            </p>
+            <p>
+                <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
+                It can result in displaying sensitive information from exceptions to end users.
+                For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
+                and restarting the app.
+            </p>
+        </div>
+    }
+</div>
 
 @code {
     [CascadingParameter]
@@ -30,9 +40,14 @@
 
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    private bool IsDevelopment { get; set; }
 
     /// <summary>
-    /// Captures the current activity or request trace ID for display when an unhandled error occurs.
+    /// Captures the current activity or request trace ID for display when an unhandled error occurs, and whether the app is running in Development.
     /// </summary>
-    protected override void OnInitialized() => RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+    protected override void OnInitialized()
+    {
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+        IsDevelopment = HttpContext?.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() ?? false;
+    }
 }

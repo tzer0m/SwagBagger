@@ -8,81 +8,108 @@
 
 <PageTitle>SwagBagger</PageTitle>
 
-<h1>SwagBagger</h1>
+<div class="submit-card">
+    <h2>Add Download</h2>
 
-<form @onsubmit="SubmitAsync">
-    <label for="magnetLink">Magnet Link</label>
-    <input type="text" id="magnetLink" @bind="MagnetLink" />
+    <form @onsubmit="SubmitAsync" class="submit-form">
+        <div class="mb-3">
+            <label for="magnetLink" class="form-label">Magnet Link</label>
+            <textarea id="magnetLink" @bind="MagnetLink" class="form-control" rows="2" placeholder="magnet:?xt=urn:btih:..."></textarea>
+        </div>
 
-    <label for="mediaType">Type</label>
-    <select id="mediaType" @bind="SelectedType">
-        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
-        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
-    </select>
+        @if (SelectedType == SwagBagger.Models.MediaType.Movie)
+        {
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="mediaType" class="form-label">Type</label>
+                    <select id="mediaType" @bind="SelectedType" class="form-select">
+                        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
+                        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="movieName" class="form-label">Movie Name</label>
+                    <input type="text" id="movieName" @bind="MovieName" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="movieYear" class="form-label">Release Year</label>
+                    <input type="number" id="movieYear" @bind="MovieYear" class="form-control" />
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label for="mediaType" class="form-label">Type</label>
+                    <select id="mediaType" @bind="SelectedType" class="form-select">
+                        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
+                        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="showName" class="form-label">Show Name</label>
+                    <input type="text" id="showName" @bind="ShowName" class="form-control" />
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="seasonNumber" class="form-label">Season Number</label>
+                    <input type="number" id="seasonNumber" @bind="SeasonNumber" class="form-control" />
+                </div>
+            </div>
+        }
 
-    @if (SelectedType == SwagBagger.Models.MediaType.Movie)
+        <button type="submit" class="btn btn-primary">Submit</button>
+
+        @if (SubmitError is not null)
+        {
+            <p class="submit-error">@SubmitError</p>
+        }
+    </form>
+</div>
+
+<div class="downloads-card">
+    <h2>Downloads</h2>
+
+    @if (TorrentMonitorService.CurrentTorrents.Count == 0)
     {
-        <label for="movieName">Movie Name</label>
-        <input type="text" id="movieName" @bind="MovieName" />
-
-        <label for="movieYear">Release Year</label>
-        <input type="number" id="movieYear" @bind="MovieYear" />
+        <p class="text-muted">No active downloads.</p>
     }
     else
     {
-        <label for="showName">Show Name</label>
-        <input type="text" id="showName" @bind="ShowName" />
-
-        <label for="seasonNumber">Season Number</label>
-        <input type="number" id="seasonNumber" @bind="SeasonNumber" />
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Seeds</th>
+                        <th>Download Speed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (SwagBagger.Models.TorrentInfo torrent in TorrentMonitorService.CurrentTorrents)
+                    {
+                        bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
+                        <tr>
+                            <td>@torrent.Name</td>
+                            <td>@FormatBytes(torrent.Size)</td>
+                            <td>
+                                <span class="status-badge @(moving ? "status-moving" : GetStatusClass(torrent.State))">
+                                    @(moving ? "Moving" : torrent.State)
+                                </span>
+                            </td>
+                            <td>@(moving ? "-" : $"{torrent.Progress:P0}")</td>
+                            <td>@(moving ? "-" : torrent.NumSeeds.ToString())</td>
+                            <td>@(moving ? "-" : FormatSpeed(torrent.DownloadSpeed))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
-
-    <button type="submit">Submit</button>
-
-    @if (SubmitError is not null)
-    {
-        <p style="color:red">@SubmitError</p>
-    }
-</form>
-
-<h2>Downloads</h2>
-@if (TorrentMonitorService.CurrentTorrents.Count == 0)
-{
-    <p>No active downloads.</p>
-}
-else
-{
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Size</th>
-                <th>Status</th>
-                <th>Progress</th>
-                <th>Seeds</th>
-                <th>Download Speed</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (SwagBagger.Models.TorrentInfo torrent in TorrentMonitorService.CurrentTorrents)
-            {
-                bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
-                <tr>
-                    <td>@torrent.Name</td>
-                    <td>@FormatBytes(torrent.Size)</td>
-                    <td>@(moving ? "Moving" : torrent.State)</td>
-                    <td>@(moving ? "-" : $"{torrent.Progress:P0}")</td>
-                    <td>@(moving ? "-" : torrent.NumSeeds.ToString())</td>
-                    <td>@(moving ? "-" : FormatSpeed(torrent.DownloadSpeed))</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
-
-<form method="post" action="/account/logout">
-    <button type="submit">Log out</button>
-</form>
+</div>
 
 @code {
     /// <summary>
@@ -165,6 +192,19 @@ else
     {
         InvokeAsync(StateHasChanged);
     }
+
+    /// <summary>
+    /// Maps a qBittorrent state string to a CSS class for the status badge.
+    /// </summary>
+    /// <param name="state">The raw qBittorrent state string.</param>
+    private static string GetStatusClass(string state) => state switch
+    {
+        "downloading" or "metaDL" or "forcedDL" => "status-downloading",
+        "stalledUP" or "uploading" or "forcedUP" => "status-seeding",
+        "error" or "missingFiles" => "status-error",
+        "pausedDL" or "pausedUP" => "status-paused",
+        _ => "status-default"
+    };
 
     /// <summary>
     /// Formats a byte count as a human-readable size string, e.g. "1.4 GB".
