@@ -1,12 +1,199 @@
 ﻿@page "/"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@implements IDisposable
+@inject SwagBagger.Services.QBittorrentClient QBittorrentClient
+@inject SwagBagger.Services.MediaPathBuilder MediaPathBuilder
+@inject SwagBagger.Services.MagnetLinkParser MagnetLinkParser
+@inject SwagBagger.Services.TorrentMonitorService TorrentMonitorService
 
 <PageTitle>SwagBagger</PageTitle>
 
 <h1>SwagBagger</h1>
 
-<p>Submit form coming soon.</p>
+<form @onsubmit="SubmitAsync">
+    <label for="magnetLink">Magnet Link</label>
+    <input type="text" id="magnetLink" @bind="MagnetLink" />
+
+    <label for="mediaType">Type</label>
+    <select id="mediaType" @bind="SelectedType">
+        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
+        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
+    </select>
+
+    @if (SelectedType == SwagBagger.Models.MediaType.Movie)
+    {
+        <label for="movieName">Movie Name</label>
+        <input type="text" id="movieName" @bind="MovieName" />
+
+        <label for="movieYear">Release Year</label>
+        <input type="number" id="movieYear" @bind="MovieYear" />
+    }
+    else
+    {
+        <label for="showName">Show Name</label>
+        <input type="text" id="showName" @bind="ShowName" />
+
+        <label for="seasonNumber">Season Number</label>
+        <input type="number" id="seasonNumber" @bind="SeasonNumber" />
+    }
+
+    <button type="submit">Submit</button>
+
+    @if (SubmitError is not null)
+    {
+        <p style="color:red">@SubmitError</p>
+    }
+</form>
+
+<h2>Downloads</h2>
+@if (TorrentMonitorService.CurrentTorrents.Count == 0)
+{
+    <p>No active downloads.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Seeds</th>
+                <th>Download Speed</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (SwagBagger.Models.TorrentInfo torrent in TorrentMonitorService.CurrentTorrents)
+            {
+                bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
+                <tr>
+                    <td>@torrent.Name</td>
+                    <td>@FormatBytes(torrent.Size)</td>
+                    <td>@(moving ? "Moving" : torrent.State)</td>
+                    <td>@(moving ? "-" : $"{torrent.Progress:P0}")</td>
+                    <td>@(moving ? "-" : torrent.NumSeeds.ToString())</td>
+                    <td>@(moving ? "-" : FormatSpeed(torrent.DownloadSpeed))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 <form method="post" action="/account/logout">
     <button type="submit">Log out</button>
 </form>
+
+@code {
+    /// <summary>
+    /// The magnet link entered by the user.
+    /// </summary>
+    private string MagnetLink { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the submission is a movie or a TV show.
+    /// </summary>
+    private SwagBagger.Models.MediaType SelectedType { get; set; } = SwagBagger.Models.MediaType.Movie;
+
+    /// <summary>
+    /// The movie's title, used when <see cref="SelectedType"/> is Movie.
+    /// </summary>
+    private string MovieName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The movie's release year, used when <see cref="SelectedType"/> is Movie.
+    /// </summary>
+    private int MovieYear { get; set; } = DateTime.Now.Year;
+
+    /// <summary>
+    /// The show's title, used when <see cref="SelectedType"/> is Tv.
+    /// </summary>
+    private string ShowName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The season number, used when <see cref="SelectedType"/> is Tv.
+    /// </summary>
+    private int SeasonNumber { get; set; } = 1;
+
+    /// <summary>
+    /// An error message to display if submission fails, or null if there is no error.
+    /// </summary>
+    private string? SubmitError { get; set; }
+
+    /// <summary>
+    /// Subscribes to torrent status updates so the page redraws whenever the background monitor polls qBittorrent or a move starts or finishes.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        TorrentMonitorService.StatusChanged += HandleStatusChanged;
+    }
+
+    /// <summary>
+    /// Extracts the magnet link's hash, builds the Plex destination path, adds the magnet to qBittorrent, and registers the destination for later use by the background monitor.
+    /// </summary>
+    private async Task SubmitAsync()
+    {
+        SubmitError = null;
+
+        // Extract the info hash from the magnet link, used as the key to register the destination path
+        string? hash = MagnetLinkParser.ExtractHash(MagnetLink);
+        if (hash is null)
+        {
+            SubmitError = "Could not extract a hash from that magnet link. Check it is a valid magnet link.";
+            return;
+        }
+
+        // Build the Plex-compliant destination folder based on the selected media type
+        string destinationPath = SelectedType == SwagBagger.Models.MediaType.Movie
+            ? MediaPathBuilder.BuildMoviePath(MovieName, MovieYear)
+            : MediaPathBuilder.BuildTvPath(ShowName, SeasonNumber);
+
+        // Add the magnet to qBittorrent and register where it should end up once complete
+        await QBittorrentClient.AddMagnetAsync(MagnetLink);
+        TorrentMonitorService.RegisterDestination(hash, destinationPath);
+
+        // Reset the form for the next submission
+        MagnetLink = string.Empty;
+        MovieName = string.Empty;
+        ShowName = string.Empty;
+    }
+
+    /// <summary>
+    /// Invoked when the background monitor reports updated torrent status; triggers a re-render via the Blazor dispatcher.
+    /// </summary>
+    private void HandleStatusChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Formats a byte count as a human-readable size string, e.g. "1.4 GB".
+    /// </summary>
+    /// <param name="bytes">The size in bytes.</param>
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double size = bytes;
+        int unitIndex = 0;
+        while (size >= 1024 && unitIndex < units.Length - 1)
+        {
+            size /= 1024;
+            unitIndex++;
+        }
+        return $"{size:0.#} {units[unitIndex]}";
+    }
+
+    /// <summary>
+    /// Formats a byte-per-second speed as a human-readable string, e.g. "1.4 MB/s".
+    /// </summary>
+    /// <param name="bytesPerSecond">The speed in bytes per second.</param>
+    private static string FormatSpeed(long bytesPerSecond) => $"{FormatBytes(bytesPerSecond)}/s";
+
+    /// <summary>
+    /// Unsubscribes from torrent status updates when the component is disposed, to avoid a memory leak.
+    /// </summary>
+    public void Dispose()
+    {
+        TorrentMonitorService.StatusChanged -= HandleStatusChanged;
+    }
+}

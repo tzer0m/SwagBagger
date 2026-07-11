@@ -95,6 +95,26 @@ namespace SwagBagger.Services
         }
 
         /// <summary>
+        /// Removes a torrent from qBittorrent's tracking (stopping seeding), without deleting its downloaded files, so they can be moved separately afterward.
+        /// </summary>
+        /// <param name="hash">The torrent's info hash.</param>
+        public async Task DeleteTorrentAsync(string hash)
+        {
+            // Check if the session cookie is set, then read qBittorrent connection settings from configuration
+            EnsureLoggedIn();
+            string baseUrl = configuration["QBittorrent:BaseUrl"] ?? throw new InvalidOperationException("QBittorrent:BaseUrl is not configured.");
+
+            // Create the delete request content - deleteFiles=false removes only the torrent entry, leaving the downloaded files in place for a separate move step
+            Dictionary<string, string> payload = new() { ["hashes"] = hash, ["deleteFiles"] = "false" };
+            using HttpRequestMessage request = new(HttpMethod.Post, $"{baseUrl}/api/v2/torrents/delete") { Content = new FormUrlEncodedContent(payload) };
+            request.Headers.Add("Cookie", SessionCookie);
+
+            // Send the request and ensure it was successful
+            HttpResponseMessage response = await HttpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+        }
+
+        /// <summary>
         /// Throws if <see cref="LoginAsync"/> has not been called yet, since all other calls require an active session.
         /// </summary>
         private void EnsureLoggedIn()

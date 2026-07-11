@@ -42,5 +42,17 @@ namespace SwagBagger.Models
         /// </summary>
         [JsonPropertyName("size")]
         public long Size { get; init; }
+
+        /// <summary>
+        /// Number of seeds currently connected for this torrent.
+        /// </summary>
+        [JsonPropertyName("num_seeds")]
+        public int NumSeeds { get; init; }
+
+        /// <summary>
+        /// Current download speed, in bytes per second.
+        /// </summary>
+        [JsonPropertyName("dlspeed")]
+        public long DownloadSpeed { get; init; }
     }
 }

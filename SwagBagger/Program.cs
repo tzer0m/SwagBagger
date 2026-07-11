@@ -5,6 +5,7 @@ using SwagBagger.Models;
 using SwagBagger.Services;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
+using t0m.Ting;
 
 // Create builder and add services
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,11 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<QBittorrentClient>();
+builder.Services.AddSingleton<MediaPathBuilder>();
+builder.Services.AddSingleton<MagnetLinkParser>();
+builder.Services.AddTingClient(builder.Configuration);
+builder.Services.AddSingleton<TorrentMonitorService>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<TorrentMonitorService>());
 
 // Create app and configure features
 WebApplication app = builder.Build();

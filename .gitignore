@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /SwagBagger/Scripts/docker-compose.yml
 /SwagBagger/Scripts/qbit-config/
 /SwagBagger/Scripts/downloads
+/.editorconfig

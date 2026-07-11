@@ -10,10 +10,11 @@
 
   <ItemGroup>
     <PackageReference Include="Otp.NET" Version="1.4.1" />
+    <PackageReference Include="t0m.Ting" Version="1.0.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Scripts\" />
+    <Folder Include="Scripts\downloads\" />
   </ItemGroup>
 
 </Project>
