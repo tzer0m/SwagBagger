@@ -11,10 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Stop service
-        run: sudo systemctl stop Dashboard.service
+        run: sudo systemctl stop SwagBagger.service
       - name: Publish
-        run: dotnet publish Dashboard/Dashboard.csproj -c Release -o /home/tzer0m/Services/Dashboard
+        run: dotnet publish SwagBagger/SwagBagger.csproj -c Release -o /home/tzer0m/Services/SwagBagger
       - name: Start service
-        run: sudo systemctl start Dashboard.service
+        run: sudo systemctl start SwagBagger.service
       - name: Check status
-        run: sudo systemctl status Dashboard.service --no-pager
+        run: sudo systemctl status SwagBagger.service --no-pager
