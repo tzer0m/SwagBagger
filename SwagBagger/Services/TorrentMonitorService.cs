@@ -26,6 +26,11 @@ namespace SwagBagger.Services
         private readonly Dictionary<string, string> DestinationsByHash = [];
 
         /// <summary>
+        /// Maps a torrent's hash to the display name entered on the submission form, so the UI can show it alongside qBittorrent's own torrent name.
+        /// </summary>
+        private readonly Dictionary<string, string> DisplayNamesByHash = [];
+
+        /// <summary>
         /// Tracks hashes of torrents currently being moved to their destination, so the UI can show a "Moving" status.
         /// </summary>
         private readonly HashSet<string> MovingHashes = [];
@@ -41,13 +46,15 @@ namespace SwagBagger.Services
         public event Action? StatusChanged;
 
         /// <summary>
-        /// Registers the intended Plex destination folder for a torrent, keyed by its info hash, so it can be moved there once complete.
+        /// Registers the intended Plex destination folder and submitted display name for a torrent, keyed by its info hash, so it can be moved there once complete.
         /// </summary>
         /// <param name="hash">The torrent's info hash, as returned by qBittorrent when the magnet was added.</param>
         /// <param name="destinationPath">The pre-built Plex destination folder from <see cref="MediaPathBuilder"/>.</param>
-        public void RegisterDestination(string hash, string destinationPath)
+        /// <param name="displayName">The name entered on the submission form.</param>
+        public void RegisterDestination(string hash, string destinationPath, string displayName)
         {
             DestinationsByHash[hash] = destinationPath;
+            DisplayNamesByHash[hash] = displayName;
         }
 
         /// <summary>
@@ -55,6 +62,12 @@ namespace SwagBagger.Services
         /// </summary>
         /// <param name="hash">The torrent's info hash.</param>
         public bool IsMoving(string hash) => MovingHashes.Contains(hash);
+
+        /// <summary>
+        /// Returns the display name entered on the submission form for the given torrent, or null if none was registered.
+        /// </summary>
+        /// <param name="hash">The torrent's info hash.</param>
+        public string? GetDisplayName(string hash) => DisplayNamesByHash.GetValueOrDefault(hash);
 
         /// <summary>
         /// Runs the polling loop for the lifetime of the application, checking qBittorrent every 15 seconds.

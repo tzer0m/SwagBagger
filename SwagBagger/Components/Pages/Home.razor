@@ -79,16 +79,18 @@
         <div class="table-responsive">
             <table class="table table-dark table-hover align-middle">
                 <colgroup>
-                    <col style="width: 32%;" />
-                    <col style="width: 10%;" />
-                    <col style="width: 14%;" />
                     <col style="width: 20%;" />
+                    <col style="width: 20%;" />
+                    <col style="width: 5%;" />
                     <col style="width: 10%;" />
-                    <col style="width: 14%;" />
+                    <col style="width: 35%;" />
+                    <col style="width: 5%;" />
+                    <col style="width: 5%;" />
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Requested Name</th>
+                        <th>Torrent Name</th>
                         <th>Size</th>
                         <th>Status</th>
                         <th>Progress</th>
@@ -101,6 +103,7 @@
                     {
                         bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
                         <tr>
+                            <td class="text-truncate">@(TorrentMonitorService.GetDisplayName(torrent.Hash) ?? "-")</td>
                             <td class="text-truncate">@torrent.Name</td>
                             <td>@FormatBytes(torrent.Size)</td>
                             <td>
@@ -197,7 +200,8 @@
 
         // Add the magnet to qBittorrent and register where it should end up once complete
         await QBittorrentClient.AddMagnetAsync(MagnetLink);
-        TorrentMonitorService.RegisterDestination(hash, destinationPath);
+        string displayName = SelectedType == SwagBagger.Models.MediaType.Movie ? MovieName : ShowName;
+        TorrentMonitorService.RegisterDestination(hash, destinationPath, displayName);
 
         // Reset the form for the next submission
         MagnetLink = string.Empty;
@@ -265,7 +269,7 @@
             size /= 1024;
             unitIndex++;
         }
-        return $"{size:0.#} {units[unitIndex]}";
+        return $"{size:0.#}{units[unitIndex]}";
     }
 
     /// <summary>
