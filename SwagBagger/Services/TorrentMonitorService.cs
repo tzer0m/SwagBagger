@@ -140,7 +140,7 @@ namespace SwagBagger.Services
                 // Mark the torrent as moving so the UI can reflect it immediately, rather than waiting for the next poll
                 string containerDownloadsPath = configuration["QBittorrent:ContainerDownloadsPath"] ?? "/downloads";
                 string hostDownloadsPath = configuration["QBittorrent:HostDownloadsPath"] ?? throw new InvalidOperationException("QBittorrent:HostDownloadsPath is not configured.");
-                string translatedSavePath = torrent.SavePath.Replace(containerDownloadsPath, hostDownloadsPath).Replace('/', '\\');
+                string translatedSavePath = torrent.SavePath.Replace(containerDownloadsPath, hostDownloadsPath);
                 string sourcePath = Path.Combine(translatedSavePath, torrent.Name);
                 string targetPath = Path.Combine(destinationFolder, torrent.Name);
                 MovingHashes.Add(torrent.Hash);
