@@ -39,6 +39,7 @@ builder.Services.AddSingleton<MagnetLinkParser>();
 builder.Services.AddTingClient(builder.Configuration);
 builder.Services.AddSingleton<TorrentMonitorService>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<TorrentMonitorService>());
+builder.Services.AddSingleton<PlexClient>();
 
 // Create app and configure features
 WebApplication app = builder.Build();

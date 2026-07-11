@@ -11,9 +11,10 @@ namespace SwagBagger.Services
     /// </remarks>
     /// <param name="qBittorrentClient">Client used to query qBittorrent for torrent status.</param>
     /// <param name="tingClient">Client used to send completion notifications.</param>
+    /// <param name="plexClient">Client used to interact with Plex.</param>
     /// <param name="logger">Logger for this service.</param>
     /// <param name="configuration">Configuration for the service.</param>
-    public class TorrentMonitorService(QBittorrentClient qBittorrentClient, TingClient tingClient, ILogger<TorrentMonitorService> logger, IConfiguration configuration) : BackgroundService
+    public class TorrentMonitorService(QBittorrentClient qBittorrentClient, TingClient tingClient, PlexClient plexClient, ILogger<TorrentMonitorService> logger, IConfiguration configuration) : BackgroundService
     {
         /// <summary>
         /// Tracks hashes of torrents that have already been processed, so they are not handled more than once.
@@ -163,6 +164,16 @@ namespace SwagBagger.Services
                     return;
                 }
                 logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", torrent.Name, targetPath);
+
+                // Trigger a Plex library scan for whichever library the file was moved into
+                if (destinationFolder.Contains("/Movies/"))
+                {
+                    await plexClient.RefreshMoviesAsync();
+                }
+                else if (destinationFolder.Contains("/TV/"))
+                {
+                    await plexClient.RefreshTvAsync();
+                }
                 await tingClient.SendAsync("Download complete", $"{torrent.Name} has finished downloading and been moved.");
             }
             catch (Exception ex)
