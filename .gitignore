@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/SwagBagger/Scripts/docker-compose.yml
+/SwagBagger/Scripts/qbit-config/
+/SwagBagger/Scripts/downloads
