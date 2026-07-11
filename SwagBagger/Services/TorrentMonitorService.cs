@@ -135,6 +135,7 @@ namespace SwagBagger.Services
                 if (!DestinationsByHash.TryGetValue(torrent.Hash, out string? destinationFolder))
                 {
                     logger.LogWarning("Completed torrent {Name} has no registered destination, leaving files in place.", torrent.Name);
+                    await tingClient.SendAsync("Download move failed", $"{torrent.Name} finished but had no registered destination.");
                     return;
                 }
 
@@ -161,6 +162,7 @@ namespace SwagBagger.Services
                 else
                 {
                     logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", torrent.Name, translatedSourcePath);
+                    await tingClient.SendAsync("Download move failed", $"{torrent.Name} finished but its files could not be found at the expected path.");
                     return;
                 }
                 logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", torrent.Name, targetPath);
