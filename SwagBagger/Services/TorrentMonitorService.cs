@@ -147,6 +147,9 @@ namespace SwagBagger.Services
         /// <param name="torrent">The completed torrent to handle.</param>
         private async Task HandleCompletedTorrentAsync(TorrentInfo torrent)
         {
+            // Get torrent display name
+            string displayName = DisplayNamesByHash.GetValueOrDefault(torrent.Hash, torrent.Name);
+
             try
             {
                 // Remove the torrent from qBittorrent immediately to stop seeding, without touching the downloaded files
@@ -155,8 +158,8 @@ namespace SwagBagger.Services
                 // Check if a destination has been registered for this torrent
                 if (!DestinationsByHash.TryGetValue(torrent.Hash, out string? destinationFolder))
                 {
-                    logger.LogWarning("Completed torrent {Name} has no registered destination, leaving files in place.", torrent.Name);
-                    await tingClient.SendAsync("Download move failed", $"{torrent.Name} finished but had no registered destination.");
+                    logger.LogWarning("Completed torrent {Name} has no registered destination, leaving files in place.", displayName);
+                    await tingClient.SendAsync("Download move failed", $"{displayName} finished but had no registered destination.");
                     return;
                 }
 
@@ -186,8 +189,8 @@ namespace SwagBagger.Services
                     }
                     else
                     {
-                        logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", torrent.Name, translatedSourcePath);
-                        await tingClient.SendAsync("Download move failed", $"{torrent.Name} finished but its files could not be found at the expected path.");
+                        logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", displayName, translatedSourcePath);
+                        await tingClient.SendAsync("Download move failed", $"{displayName} finished but its files could not be found at the expected path.");
                         return;
                     }
                 }
@@ -205,7 +208,7 @@ namespace SwagBagger.Services
                 }
 
                 MoveProgressByHash[torrent.Hash] = 1;
-                logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", torrent.Name, targetPath);
+                logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", displayName, targetPath);
 
                 // Trigger a Plex library scan for whichever library the file was moved into
                 if (destinationFolder.Contains("/Movies/"))
@@ -216,12 +219,12 @@ namespace SwagBagger.Services
                 {
                     await plexClient.RefreshTvAsync();
                 }
-                await tingClient.SendAsync("Download complete", $"{torrent.Name} has finished downloading and been moved.");
+                await tingClient.SendAsync("Download complete", $"{displayName} has finished downloading and been moved.");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to move completed torrent {Name}.", torrent.Name);
-                await tingClient.SendAsync("Download move failed", $"{torrent.Name} finished but could not be moved: {ex.Message}");
+                logger.LogError(ex, "Failed to move completed torrent {Name}.", displayName);
+                await tingClient.SendAsync("Download move failed", $"{displayName} finished but could not be moved: {ex.Message}");
             }
             finally
             {
