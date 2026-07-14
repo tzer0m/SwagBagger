@@ -173,6 +173,7 @@ namespace SwagBagger.Services
                 StatusChanged?.Invoke();
 
                 // Copy the files to the registered Plex destination, tracking progress against the torrent's known size, then delete the local source once the copy has succeeded
+                Directory.CreateDirectory(destinationFolder);
                 using CancellationTokenSource progressCts = new();
                 Task progressTask = TrackMoveProgressAsync(torrent.Hash, targetPath, torrent.Size, progressCts.Token);
                 try
