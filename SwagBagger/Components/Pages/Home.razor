@@ -2,6 +2,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @implements IDisposable
 @inject SwagBagger.Services.QBittorrentClient QBittorrentClient
+@inject SwagBagger.Services.ProwlarrClient ProwlarrClient
 @inject SwagBagger.Services.MediaPathBuilder MediaPathBuilder
 @inject SwagBagger.Services.MagnetLinkParser MagnetLinkParser
 @inject SwagBagger.Services.TorrentMonitorService TorrentMonitorService
@@ -12,10 +13,83 @@
     <h2>Add Download</h2>
 
     <form @onsubmit="SubmitAsync" class="submit-form">
-        <div class="mb-3">
-            <label for="magnetLink" class="form-label">Magnet Link</label>
-            <textarea id="magnetLink" @bind="MagnetLink" class="form-control" rows="2" placeholder="magnet:?xt=urn:btih:..."></textarea>
+        <div class="mb-3 form-check form-switch">
+            <input type="checkbox" id="manualEntryToggle" class="form-check-input toggle-switch-green" checked="@ManualEntry" @onchange="ToggleManualEntry" />
+            <label for="manualEntryToggle" class="form-check-label">Enter magnet link manually</label>
         </div>
+
+        @if (ManualEntry)
+        {
+            <div class="mb-3">
+                <label for="magnetLink" class="form-label">Magnet Link</label>
+                <textarea id="magnetLink" @bind="MagnetLink" class="form-control" rows="2" placeholder="magnet:?xt=urn:btih:..."></textarea>
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label for="torrentSearch" class="form-label">Search Torrents</label>
+                <div class="input-group">
+                    <input type="text" id="torrentSearch" @bind="SearchQuery" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" class="form-control" placeholder="Search for a torrent..." />
+                    <button type="button" class="btn btn-secondary" @onclick="SearchAsync" disabled="@IsSearching">@(IsSearching ? "Searching..." : "Search")</button>
+                </div>
+            </div>
+
+            @if (SearchError is not null)
+            {
+                <p class="submit-error">@SearchError</p>
+            }
+
+            @if (SearchResults.Count > 0)
+            {
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Indexer</th>
+                                <th>Size</th>
+                                <th>Seeders</th>
+                                <th>Leechers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (SwagBagger.Models.TorrentSearchResult result in PagedResults)
+                            {
+                                <tr class="selectable-row @(IsSelected(result) ? "selected-row" : "")" @onclick="() => SelectResult(result)">
+                                    <td class="text-truncate" style="max-width: 400px;">@result.Title</td>
+                                    <td>@result.Indexer</td>
+                                    <td>@FormatBytes(result.Size)</td>
+                                    <td>@result.Seeders</td>
+                                    <td>@result.Leechers</td>
+                                </tr>
+                            }
+                            @for (int i = PagedResults.Count(); i < ResultsPerPage; i++)
+                            {
+                                <tr class="filler-row">
+                                    <td>&nbsp;</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="PreviousPage" disabled="@(CurrentPage == 0)">Previous</button>
+                    <span>Page @(CurrentPage + 1) of @TotalPages</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(CurrentPage >= TotalPages - 1)">Next</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(MagnetLink))
+            {
+                <p class="text-muted">Selected: @SelectedTitle</p>
+            }
+        }
 
         @if (SelectedType == SwagBagger.Models.MediaType.Movie)
         {
@@ -132,7 +206,7 @@
 
 @code {
     /// <summary>
-    /// The magnet link entered by the user.
+    /// The magnet link entered by the user, or populated automatically when a search result is selected.
     /// </summary>
     private string MagnetLink { get; set; } = string.Empty;
 
@@ -167,11 +241,153 @@
     private string? SubmitError { get; set; }
 
     /// <summary>
+    /// Whether the user is entering a magnet link manually, rather than searching for a torrent. Defaults to false so search is the default entry mode.
+    /// </summary>
+    private bool ManualEntry { get; set; }
+
+    /// <summary>
+    /// The term currently entered in the torrent search box.
+    /// </summary>
+    private string SearchQuery { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether a search request is currently in progress.
+    /// </summary>
+    private bool IsSearching { get; set; }
+
+    /// <summary>
+    /// An error message to display if a search fails, or null if there is no error.
+    /// </summary>
+    private string? SearchError { get; set; }
+
+    /// <summary>
+    /// The full set of results from the most recent search, ordered by seeders descending.
+    /// </summary>
+    private List<SwagBagger.Models.TorrentSearchResult> SearchResults { get; set; } = [];
+
+    /// <summary>
+    /// The title of the currently selected search result, shown to confirm the user's choice.
+    /// </summary>
+    private string? SelectedTitle { get; set; }
+
+    /// <summary>
+    /// The zero-based index of the currently displayed page of search results.
+    /// </summary>
+    private int CurrentPage { get; set; }
+
+    /// <summary>
+    /// The number of search results shown per page.
+    /// </summary>
+    private const int ResultsPerPage = 10;
+
+    /// <summary>
+    /// The total number of pages available for the current set of search results.
+    /// </summary>
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(SearchResults.Count / (double)ResultsPerPage));
+
+    /// <summary>
+    /// The subset of search results to display on the current page.
+    /// </summary>
+    private IEnumerable<SwagBagger.Models.TorrentSearchResult> PagedResults => SearchResults.Skip(CurrentPage * ResultsPerPage).Take(ResultsPerPage);
+
+    /// <summary>
     /// Subscribes to torrent status updates so the page redraws whenever the background monitor polls qBittorrent or a move starts or finishes.
     /// </summary>
     protected override void OnInitialized()
     {
         TorrentMonitorService.StatusChanged += HandleStatusChanged;
+    }
+
+    /// <summary>
+    /// Toggles between search mode and manual magnet entry mode, clearing state left over from whichever mode is being left.
+    /// </summary>
+    private void ToggleManualEntry(ChangeEventArgs e)
+    {
+        ManualEntry = e.Value is true;
+        MagnetLink = string.Empty;
+        SelectedTitle = null;
+        SearchResults = [];
+        CurrentPage = 0;
+    }
+
+    /// <summary>
+    /// Searches Prowlarr for the current query and resets pagination to the first page of results.
+    /// </summary>
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            return;
+        }
+
+        IsSearching = true;
+        SearchError = null;
+        StateHasChanged();
+
+        try
+        {
+            SearchResults = await ProwlarrClient.SearchAsync(SearchQuery);
+            CurrentPage = 0;
+        }
+        catch (Exception ex)
+        {
+            SearchError = $"Search failed: {ex.Message}";
+            SearchResults = [];
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+    }
+
+    /// <summary>
+    /// Runs a search when the user presses Enter in the search box.
+    /// </summary>
+    /// <param name="e">The keyboard event arguments.</param>
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchAsync();
+        }
+    }
+
+    /// <summary>
+    /// Selects a search result, populating the magnet link from it, preferring a magnet URL over a download URL if both are present.
+    /// </summary>
+    /// <param name="result">The search result the user selected.</param>
+    private void SelectResult(SwagBagger.Models.TorrentSearchResult result)
+    {
+        MagnetLink = result.MagnetUrl ?? result.DownloadUrl ?? string.Empty;
+        SelectedTitle = result.Title;
+    }
+
+    /// <summary>
+    /// Determines whether the given search result is the currently selected one.
+    /// </summary>
+    /// <param name="result">The search result to check.</param>
+    private bool IsSelected(SwagBagger.Models.TorrentSearchResult result) => SelectedTitle == result.Title;
+
+    /// <summary>
+    /// Moves to the previous page of search results, if not already on the first page.
+    /// </summary>
+    private void PreviousPage()
+    {
+        if (CurrentPage > 0)
+        {
+            CurrentPage--;
+        }
+    }
+
+    /// <summary>
+    /// Moves to the next page of search results, if not already on the last page.
+    /// </summary>
+    private void NextPage()
+    {
+        if (CurrentPage < TotalPages - 1)
+        {
+            CurrentPage++;
+        }
     }
 
     /// <summary>
@@ -203,6 +419,10 @@
         MagnetLink = string.Empty;
         MovieName = string.Empty;
         ShowName = string.Empty;
+        SelectedTitle = null;
+        SearchResults = [];
+        SearchQuery = string.Empty;
+        CurrentPage = 0;
     }
 
     /// <summary>

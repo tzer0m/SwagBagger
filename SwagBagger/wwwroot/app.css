@@ -158,6 +158,32 @@ body {
 /* ==========================================================================
    Home.razor (submit form + downloads list)
    ========================================================================== */
+.selectable-row {
+    cursor: pointer;
+}
+
+    .selectable-row:hover {
+        background-color: rgba(57, 211, 83, 0.08);
+    }
+
+.filler-row td {
+    height: 2.2rem;
+}
+
+.form-check-input.toggle-switch-green:checked {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.form-check-input.toggle-switch-green:focus {
+    border-color: var(--accent-green-dim);
+    box-shadow: 0 0 0 0.25rem rgba(57, 211, 83, 0.25);
+}
+
+.selected-row {
+    background-color: rgba(57, 211, 83, 0.15);
+}
+
 .submit-card,
 .downloads-card {
     background-color: var(--bg-secondary);
