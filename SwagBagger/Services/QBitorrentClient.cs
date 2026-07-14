@@ -14,14 +14,25 @@ namespace SwagBagger.Services
     public class QBittorrentClient(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         /// <summary>
-        /// Http client used to communicate with the qBittorrent WebUI API.
-        /// </summary>
-        private readonly HttpClient HttpClient = httpClientFactory.CreateClient();
-
-        /// <summary>
         /// Session cookie used for authenticated requests to the qBittorrent WebUI API.
         /// </summary>
         private string? SessionCookie;
+
+        /// <summary>
+        /// Http client used to communicate with the qBittorrent WebUI API.
+        /// </summary>
+        private readonly HttpClient HttpClient = CreateConfiguredClient(httpClientFactory, configuration);
+
+        /// <summary>
+        /// Creates and configures the HTTP client used for qBittorrent WebUI requests, including the Referer header required to satisfy qBittorrent's CSRF protection.
+        /// </summary>
+        private static HttpClient CreateConfiguredClient(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        {
+            HttpClient client = httpClientFactory.CreateClient();
+            string baseUrl = configuration["QBittorrent:BaseUrl"] ?? throw new InvalidOperationException("QBittorrent:BaseUrl is not configured.");
+            client.DefaultRequestHeaders.Referrer = new Uri(baseUrl);
+            return client;
+        }
 
         /// <summary>
         /// Authenticates against qBittorrent's WebUI API and stores the resulting session cookie for subsequent requests.
