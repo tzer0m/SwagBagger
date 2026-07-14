@@ -1,4 +1,5 @@
 ﻿using SwagBagger.Models;
+using System.Net;
 using System.Text.Json;
 
 namespace SwagBagger.Services
@@ -45,6 +46,27 @@ namespace SwagBagger.Services
             string json = await response.Content.ReadAsStringAsync();
             List<TorrentSearchResult>? results = JsonSerializer.Deserialize<List<TorrentSearchResult>>(json, SerializerOptions);
             return results?.OrderByDescending(result => result.Seeders).Take(100).ToList() ?? [];
+        }
+
+        /// <summary>
+        /// Resolves a Prowlarr-proxied download link to a real magnet URI, if the link redirects to one.
+        /// </summary>
+        /// <param name="prowlarrDownloadUrl">The download URL returned by Prowlarr for a search result.</param>
+        /// <returns>The resolved magnet URI if the link redirects to one; otherwise null.</returns>
+        public async Task<string?> ResolveMagnetAsync(string prowlarrDownloadUrl)
+        {
+            // Create a new HTTP client that does not follow redirects.
+            HttpClient noRedirectClient = httpClientFactory.CreateClient("NoRedirect");
+            using HttpRequestMessage request = new(HttpMethod.Get, prowlarrDownloadUrl);
+            using HttpResponseMessage response = await noRedirectClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+            // If the response is a redirect, check if the Location header points to a magnet URI and return it; otherwise return null.
+            if (response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Found or HttpStatusCode.MovedPermanently)
+            {
+                string? location = response.Headers.Location?.ToString();
+                return location is not null && location.StartsWith("magnet:") ? location : null;
+            }
+            return null;
         }
     }
 }

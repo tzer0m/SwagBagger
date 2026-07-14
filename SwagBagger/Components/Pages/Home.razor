@@ -16,7 +16,7 @@
 
     <div class="mb-3 form-check form-switch">
         <input type="checkbox" id="manualEntryToggle" class="form-check-input toggle-switch-green" checked="@ManualEntry" @onchange="ToggleManualEntry" />
-        <label for="manualEntryToggle" class="form-check-label">Enter magnet link manually</label>
+        <label for="manualEntryToggle" class="form-check-label">Manual Link Entry</label>
     </div>
 
     @if (!ManualEntry)
@@ -398,13 +398,28 @@
     /// Selects a search result, populating the magnet link from it and pre-filling the name/year/season fields with a best-effort parse of the release title.
     /// </summary>
     /// <param name="result">The search result the user selected.</param>
-    private void SelectResult(TorrentSearchResult result)
+    private async Task SelectResult(TorrentSearchResult result)
     {
-        MagnetLink = result.MagnetUrl ?? result.DownloadUrl ?? string.Empty;
-        SelectedTitle = result.Title;
+        // If the result has a magnet link, use it; otherwise, try to resolve a magnet link from the download URL.
+        string? magnet = result.MagnetUrl;
+        if (magnet is null && result.DownloadUrl is not null)
+        {
+            magnet = await ProwlarrClient.ResolveMagnetAsync(result.DownloadUrl);
+        }
 
+        // If we still don't have a magnet link, show an error and don't select the result.
+        if (magnet is null)
+        {
+            SubmitError = "Could not resolve a magnet link for this result. Try a different result or indexer.";
+            return;
+        }
+
+        // Set the magnet link and pre-fill the name/year/season fields based on the title.
+        MagnetLink = magnet;
+        SelectedTitle = result.Title;
         string parsedName = TorrentTitleParser.ParseName(result.Title);
 
+        // If the title contains a season number, treat it as a TV show; otherwise, treat it as a movie and try to parse the year.
         if (TorrentTitleParser.TryParseSeason(result.Title, out int season))
         {
             SelectedType = MediaType.Tv;
