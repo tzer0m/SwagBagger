@@ -52,7 +52,7 @@ namespace SwagBagger.Services
             // Read the session cookie from the response headers
             if (response.Headers.TryGetValues("Set-Cookie", out IEnumerable<string>? cookies))
             {
-                SessionCookie = cookies.FirstOrDefault(cookie => cookie.StartsWith("QBT_SID"))?.Split(';')[0];
+                SessionCookie = cookies.FirstOrDefault(cookie => cookie.StartsWith("SID=") || cookie.StartsWith("QBT_SID="))?.Split(';')[0];
             }
 
             // Throw an exception if the session cookie was not found
