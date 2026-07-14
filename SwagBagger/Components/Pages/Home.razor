@@ -400,18 +400,24 @@
     /// <param name="result">The search result the user selected.</param>
     private async Task SelectResult(TorrentSearchResult result)
     {
-        // If the result has a magnet link, use it; otherwise, try to resolve a magnet link from the download URL.
-        string? magnet = result.MagnetUrl;
-        if (magnet is null && result.DownloadUrl is not null)
-        {
-            magnet = await ProwlarrClient.ResolveMagnetAsync(result.DownloadUrl);
-        }
-
-        // If we still don't have a magnet link, show an error and don't select the result.
-        if (magnet is null)
+        // Get the magnet link from the search result, falling back to the download URL if no magnet link is provided. If neither is available, show an error.
+        string prowlarrLink = result.MagnetUrl ?? result.DownloadUrl ?? string.Empty;
+        if (string.IsNullOrEmpty(prowlarrLink))
         {
             SubmitError = "Could not resolve a magnet link for this result. Try a different result or indexer.";
             return;
+        }
+
+        // Check if the link is already a magnet link; if not, attempt to resolve it via Prowlarr, which may be necessary for indexers that don't provide a direct magnet link in the search results.
+        string? magnet = prowlarrLink;
+        if (!prowlarrLink.StartsWith("magnet:"))
+        {
+            magnet = await ProwlarrClient.ResolveMagnetAsync(prowlarrLink);
+            if (magnet is null)
+            {
+                SubmitError = "Could not resolve a magnet link for this result. Try a different result or indexer.";
+                return;
+            }
         }
 
         // Set the magnet link and pre-fill the name/year/season fields based on the title.
