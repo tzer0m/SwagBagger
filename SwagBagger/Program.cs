@@ -35,6 +35,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<QBittorrentClient>();
 builder.Services.AddSingleton<ProwlarrClient>();
+builder.Services.AddSingleton<TorrentTitleParser>();
 builder.Services.AddSingleton<MediaPathBuilder>();
 builder.Services.AddSingleton<MagnetLinkParser>();
 builder.Services.AddTingClient(builder.Configuration);

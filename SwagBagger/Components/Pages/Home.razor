@@ -6,6 +6,7 @@
 @inject SwagBagger.Services.MediaPathBuilder MediaPathBuilder
 @inject SwagBagger.Services.MagnetLinkParser MagnetLinkParser
 @inject SwagBagger.Services.TorrentMonitorService TorrentMonitorService
+@inject SwagBagger.Services.TorrentTitleParser TorrentTitleParser
 @using SwagBagger.Models
 
 <PageTitle>SwagBagger</PageTitle>
@@ -394,13 +395,31 @@
     }
 
     /// <summary>
-    /// Selects a search result, populating the magnet link from it, preferring a magnet URL over a download URL if both are present.
+    /// Selects a search result, populating the magnet link from it and pre-filling the name/year/season fields with a best-effort parse of the release title.
     /// </summary>
     /// <param name="result">The search result the user selected.</param>
     private void SelectResult(TorrentSearchResult result)
     {
         MagnetLink = result.MagnetUrl ?? result.DownloadUrl ?? string.Empty;
         SelectedTitle = result.Title;
+
+        string parsedName = TorrentTitleParser.ParseName(result.Title);
+
+        if (TorrentTitleParser.TryParseSeason(result.Title, out int season))
+        {
+            SelectedType = MediaType.Tv;
+            ShowName = parsedName;
+            SeasonNumber = season;
+        }
+        else
+        {
+            SelectedType = MediaType.Movie;
+            MovieName = parsedName;
+            if (TorrentTitleParser.TryParseYear(result.Title, out int year))
+            {
+                MovieYear = year;
+            }
+        }
     }
 
     /// <summary>
