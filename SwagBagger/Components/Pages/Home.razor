@@ -6,18 +6,92 @@
 @inject SwagBagger.Services.MediaPathBuilder MediaPathBuilder
 @inject SwagBagger.Services.MagnetLinkParser MagnetLinkParser
 @inject SwagBagger.Services.TorrentMonitorService TorrentMonitorService
+@using SwagBagger.Models
 
 <PageTitle>SwagBagger</PageTitle>
 
 <div class="submit-card">
     <h2>Add Download</h2>
 
-    <form @onsubmit="SubmitAsync" class="submit-form">
-        <div class="mb-3 form-check form-switch">
-            <input type="checkbox" id="manualEntryToggle" class="form-check-input toggle-switch-green" checked="@ManualEntry" @onchange="ToggleManualEntry" />
-            <label for="manualEntryToggle" class="form-check-label">Enter magnet link manually</label>
+    <div class="mb-3 form-check form-switch">
+        <input type="checkbox" id="manualEntryToggle" class="form-check-input toggle-switch-green" checked="@ManualEntry" @onchange="ToggleManualEntry" />
+        <label for="manualEntryToggle" class="form-check-label">Enter magnet link manually</label>
+    </div>
+
+    @if (!ManualEntry)
+    {
+        <div class="mb-3">
+            <label for="torrentSearch" class="form-label">Search Torrents</label>
+            <div class="input-group">
+                <input type="text" id="torrentSearch" @bind="SearchQuery" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" class="form-control" placeholder="Search for a torrent..." />
+                <button type="button" class="btn btn-secondary" @onclick="SearchAsync" disabled="@IsSearching">@(IsSearching ? "Searching..." : "Search")</button>
+            </div>
         </div>
 
+        @if (SearchError is not null)
+        {
+            <p class="submit-error">@SearchError</p>
+        }
+
+        @if (SearchResults.Count > 0)
+        {
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-hover results-table">
+                    <colgroup>
+                        <col style="width: 45%;" />
+                        <col style="width: 20%;" />
+                        <col style="width: 12%;" />
+                        <col style="width: 11%;" />
+                        <col style="width: 12%;" />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="sortable-header" @onclick='() => SetSort("Title")'>Title @GetSortIndicator("Title")</th>
+                            <th class="sortable-header" @onclick='() => SetSort("Indexer")'>Indexer @GetSortIndicator("Indexer")</th>
+                            <th class="sortable-header" @onclick='() => SetSort("Size")'>Size @GetSortIndicator("Size")</th>
+                            <th class="sortable-header" @onclick='() => SetSort("Seeders")'>Seeders @GetSortIndicator("Seeders")</th>
+                            <th class="sortable-header" @onclick='() => SetSort("Leechers")'>Leechers @GetSortIndicator("Leechers")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (TorrentSearchResult result in PagedResults)
+                        {
+                            <tr class="selectable-row @(IsSelected(result) ? "selected-row" : "")" @onclick="() => SelectResult(result)">
+                                <td class="text-truncate">@result.Title</td>
+                                <td><span class="indexer-badge" style="@GetIndexerBadgeStyle(result.Indexer)">@result.Indexer</span></td>
+                                <td>@FormatBytes(result.Size)</td>
+                                <td>@result.Seeders</td>
+                                <td>@result.Leechers</td>
+                            </tr>
+                        }
+                        @for (int i = PagedResults.Count(); i < ResultsPerPage; i++)
+                        {
+                            <tr class="filler-row">
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="PreviousPage" disabled="@(CurrentPage == 0)">Previous</button>
+                <span>Page @(CurrentPage + 1) of @TotalPages</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(CurrentPage >= TotalPages - 1)">Next</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(MagnetLink))
+        {
+            <p class="text-muted">Selected: @SelectedTitle</p>
+        }
+    }
+
+    <form @onsubmit="SubmitAsync" class="submit-form">
         @if (ManualEntry)
         {
             <div class="mb-3">
@@ -25,80 +99,15 @@
                 <textarea id="magnetLink" @bind="MagnetLink" class="form-control" rows="2" placeholder="magnet:?xt=urn:btih:..."></textarea>
             </div>
         }
-        else
-        {
-            <div class="mb-3">
-                <label for="torrentSearch" class="form-label">Search Torrents</label>
-                <div class="input-group">
-                    <input type="text" id="torrentSearch" @bind="SearchQuery" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" class="form-control" placeholder="Search for a torrent..." />
-                    <button type="button" class="btn btn-secondary" @onclick="SearchAsync" disabled="@IsSearching">@(IsSearching ? "Searching..." : "Search")</button>
-                </div>
-            </div>
 
-            @if (SearchError is not null)
-            {
-                <p class="submit-error">@SearchError</p>
-            }
-
-            @if (SearchResults.Count > 0)
-            {
-                <div class="table-responsive mb-3">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Indexer</th>
-                                <th>Size</th>
-                                <th>Seeders</th>
-                                <th>Leechers</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (SwagBagger.Models.TorrentSearchResult result in PagedResults)
-                            {
-                                <tr class="selectable-row @(IsSelected(result) ? "selected-row" : "")" @onclick="() => SelectResult(result)">
-                                    <td class="text-truncate" style="max-width: 400px;">@result.Title</td>
-                                    <td>@result.Indexer</td>
-                                    <td>@FormatBytes(result.Size)</td>
-                                    <td>@result.Seeders</td>
-                                    <td>@result.Leechers</td>
-                                </tr>
-                            }
-                            @for (int i = PagedResults.Count(); i < ResultsPerPage; i++)
-                            {
-                                <tr class="filler-row">
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="PreviousPage" disabled="@(CurrentPage == 0)">Previous</button>
-                    <span>Page @(CurrentPage + 1) of @TotalPages</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@(CurrentPage >= TotalPages - 1)">Next</button>
-                </div>
-            }
-
-            @if (!string.IsNullOrEmpty(MagnetLink))
-            {
-                <p class="text-muted">Selected: @SelectedTitle</p>
-            }
-        }
-
-        @if (SelectedType == SwagBagger.Models.MediaType.Movie)
+        @if (SelectedType == MediaType.Movie)
         {
             <div class="row">
                 <div class="col-md-3 mb-3">
                     <label for="mediaType" class="form-label">Type</label>
                     <select id="mediaType" @bind="SelectedType" class="form-select">
-                        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
-                        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
+                        <option value="@MediaType.Movie">Movie</option>
+                        <option value="@MediaType.Tv">TV Show</option>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -117,8 +126,8 @@
                 <div class="col-md-3 mb-3">
                     <label for="mediaType" class="form-label">Type</label>
                     <select id="mediaType" @bind="SelectedType" class="form-select">
-                        <option value="@SwagBagger.Models.MediaType.Movie">Movie</option>
-                        <option value="@SwagBagger.Models.MediaType.Tv">TV Show</option>
+                        <option value="@MediaType.Movie">Movie</option>
+                        <option value="@MediaType.Tv">TV Show</option>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -145,7 +154,7 @@
     <h2>Downloads</h2>
 
     @{
-        List<SwagBagger.Models.TorrentInfo> displayTorrents = TorrentMonitorService.GetDisplayTorrents().ToList();
+        List<TorrentInfo> displayTorrents = TorrentMonitorService.GetDisplayTorrents().ToList();
     }
 
     @if (displayTorrents.Count == 0)
@@ -154,7 +163,7 @@
     }
     else
     {
-        @foreach (SwagBagger.Models.TorrentInfo torrent in displayTorrents)
+        @foreach (TorrentInfo torrent in displayTorrents)
         {
             bool moving = TorrentMonitorService.IsMoving(torrent.Hash);
             double displayProgress = moving ? TorrentMonitorService.GetMoveProgress(torrent.Hash) : torrent.Progress;
@@ -213,7 +222,7 @@
     /// <summary>
     /// Whether the submission is a movie or a TV show.
     /// </summary>
-    private SwagBagger.Models.MediaType SelectedType { get; set; } = SwagBagger.Models.MediaType.Movie;
+    private MediaType SelectedType { get; set; } = MediaType.Movie;
 
     /// <summary>
     /// The movie's title, used when <see cref="SelectedType"/> is Movie.
@@ -261,14 +270,24 @@
     private string? SearchError { get; set; }
 
     /// <summary>
-    /// The full set of results from the most recent search, ordered by seeders descending.
+    /// The full set of results from the most recent search.
     /// </summary>
-    private List<SwagBagger.Models.TorrentSearchResult> SearchResults { get; set; } = [];
+    private List<TorrentSearchResult> SearchResults { get; set; } = [];
 
     /// <summary>
     /// The title of the currently selected search result, shown to confirm the user's choice.
     /// </summary>
     private string? SelectedTitle { get; set; }
+
+    /// <summary>
+    /// The column currently used to sort search results.
+    /// </summary>
+    private string SortColumn { get; set; } = "Seeders";
+
+    /// <summary>
+    /// Whether the current sort is descending.
+    /// </summary>
+    private bool SortDescending { get; set; } = true;
 
     /// <summary>
     /// The zero-based index of the currently displayed page of search results.
@@ -286,9 +305,23 @@
     private int TotalPages => Math.Max(1, (int)Math.Ceiling(SearchResults.Count / (double)ResultsPerPage));
 
     /// <summary>
-    /// The subset of search results to display on the current page.
+    /// The full set of search results, sorted according to the current sort column and direction.
     /// </summary>
-    private IEnumerable<SwagBagger.Models.TorrentSearchResult> PagedResults => SearchResults.Skip(CurrentPage * ResultsPerPage).Take(ResultsPerPage);
+    private IEnumerable<TorrentSearchResult> SortedResults => SortColumn switch
+    {
+        "Title" => SortDescending ? SearchResults.OrderByDescending(result => result.Title) : SearchResults.OrderBy(result => result.Title),
+        "Indexer" => SortDescending ? SearchResults.OrderByDescending(result => result.Indexer) : SearchResults.OrderBy(result => result.Indexer),
+        "Size" => SortDescending ? SearchResults.OrderByDescending(result => result.Size) : SearchResults.OrderBy(result => result.Size),
+        "Leechers" => SortDescending ? SearchResults.OrderByDescending(result => result.Leechers) : SearchResults.OrderBy(result => result.Leechers),
+        _ => SortDescending ? SearchResults.OrderByDescending(result => result.Seeders) : SearchResults.OrderBy(result => result.Seeders)
+    };
+
+    /// <summary>
+    /// The subset of sorted search results to display on the current page.
+    /// </summary>
+    private IEnumerable<TorrentSearchResult> PagedResults => SortedResults.Skip(CurrentPage * ResultsPerPage).Take(ResultsPerPage);
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────
 
     /// <summary>
     /// Subscribes to torrent status updates so the page redraws whenever the background monitor polls qBittorrent or a move starts or finishes.
@@ -296,6 +329,14 @@
     protected override void OnInitialized()
     {
         TorrentMonitorService.StatusChanged += HandleStatusChanged;
+    }
+
+    /// <summary>
+    /// Unsubscribes from torrent status updates when the component is disposed, to avoid a memory leak.
+    /// </summary>
+    public void Dispose()
+    {
+        TorrentMonitorService.StatusChanged -= HandleStatusChanged;
     }
 
     /// <summary>
@@ -356,7 +397,7 @@
     /// Selects a search result, populating the magnet link from it, preferring a magnet URL over a download URL if both are present.
     /// </summary>
     /// <param name="result">The search result the user selected.</param>
-    private void SelectResult(SwagBagger.Models.TorrentSearchResult result)
+    private void SelectResult(TorrentSearchResult result)
     {
         MagnetLink = result.MagnetUrl ?? result.DownloadUrl ?? string.Empty;
         SelectedTitle = result.Title;
@@ -366,7 +407,41 @@
     /// Determines whether the given search result is the currently selected one.
     /// </summary>
     /// <param name="result">The search result to check.</param>
-    private bool IsSelected(SwagBagger.Models.TorrentSearchResult result) => SelectedTitle == result.Title;
+    private bool IsSelected(TorrentSearchResult result) => SelectedTitle == result.Title;
+
+    /// <summary>
+    /// Sets the sort column, reversing the sort direction if the same column is clicked again, and resets to the first page.
+    /// </summary>
+    /// <param name="column">The column name to sort by.</param>
+    private void SetSort(string column)
+    {
+        if (SortColumn == column)
+        {
+            SortDescending = !SortDescending;
+        }
+        else
+        {
+            SortColumn = column;
+            SortDescending = true;
+        }
+        CurrentPage = 0;
+    }
+
+    /// <summary>
+    /// Returns an arrow indicator for the given column if it is the current sort column, or an empty string otherwise.
+    /// </summary>
+    /// <param name="column">The column name to check.</param>
+    private string GetSortIndicator(string column) => SortColumn != column ? "" : SortDescending ? "▼" : "▲";
+
+    /// <summary>
+    /// Deterministically builds a CSS style string for an indexer badge, so each source gets a consistent, readable color.
+    /// </summary>
+    /// <param name="indexerName">The indexer's name.</param>
+    private static string GetIndexerBadgeStyle(string indexerName)
+    {
+        (string background, string text) = IndexerPalette[Math.Abs(indexerName.GetHashCode()) % IndexerPalette.Length];
+        return $"background-color: {background}; color: {text};";
+    }
 
     /// <summary>
     /// Moves to the previous page of search results, if not already on the first page.
@@ -406,13 +481,11 @@
         }
 
         // Build the Plex-compliant destination folder based on the selected media type
-        string destinationPath = SelectedType == SwagBagger.Models.MediaType.Movie
-            ? MediaPathBuilder.BuildMoviePath(MovieName, MovieYear)
-            : MediaPathBuilder.BuildTvPath(ShowName, SeasonNumber);
+        string destinationPath = SelectedType == MediaType.Movie ? MediaPathBuilder.BuildMoviePath(MovieName, MovieYear) : MediaPathBuilder.BuildTvPath(ShowName, SeasonNumber);
 
         // Add the magnet to qBittorrent and register where it should end up once complete
         await QBittorrentClient.AddMagnetAsync(MagnetLink);
-        string displayName = SelectedType == SwagBagger.Models.MediaType.Movie ? MovieName : ShowName;
+        string displayName = SelectedType == MediaType.Movie ? MovieName : ShowName;
         TorrentMonitorService.RegisterDestination(hash, destinationPath, displayName);
 
         // Reset the form for the next submission
@@ -432,6 +505,27 @@
     {
         InvokeAsync(StateHasChanged);
     }
+
+    /// <summary>
+    /// A curated set of background/text color pairs used for indexer badges, chosen for readability against a dark theme.
+    /// </summary>
+    private static readonly (string Background, string Text)[] IndexerPalette =
+    [
+        ("rgba(88, 166, 255, 0.18)", "#79c0ff"),
+        ("rgba(188, 140, 255, 0.18)", "#d2a8ff"),
+        ("rgba(247, 129, 102, 0.18)", "#ffa198"),
+        ("rgba(57, 211, 83, 0.18)", "#56d364"),
+        ("rgba(210, 153, 34, 0.18)", "#e3b341"),
+        ("rgba(86, 212, 221, 0.18)", "#76e3e8"),
+        ("rgba(255, 175, 235, 0.18)", "#ffb3ea"),
+        ("rgba(163, 190, 140, 0.18)", "#a3d9a5")
+    ];
+
+    /// <summary>
+    /// Deterministically picks a background/text color pair for an indexer name, so each source gets a consistent, readable badge color.
+    /// </summary>
+    /// <param name="indexerName">The indexer's name.</param>
+    private static (string Background, string Text) GetIndexerColors(string indexerName) => IndexerPalette[Math.Abs(indexerName.GetHashCode()) % IndexerPalette.Length];
 
     /// <summary>
     /// Maps a qBittorrent state string to a CSS class for the status badge.
@@ -493,12 +587,4 @@
     /// </summary>
     /// <param name="bytesPerSecond">The speed in bytes per second.</param>
     private static string FormatSpeed(long bytesPerSecond) => $"{FormatBytes(bytesPerSecond)}/s";
-
-    /// <summary>
-    /// Unsubscribes from torrent status updates when the component is disposed, to avoid a memory leak.
-    /// </summary>
-    public void Dispose()
-    {
-        TorrentMonitorService.StatusChanged -= HandleStatusChanged;
-    }
 }

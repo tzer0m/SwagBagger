@@ -158,6 +158,28 @@ body {
 /* ==========================================================================
    Home.razor (submit form + downloads list)
    ========================================================================== */
+.results-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+    .results-table tbody tr {
+        height: 2.75rem;
+    }
+
+    .results-table tbody td {
+        vertical-align: middle;
+    }
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+    .sortable-header:hover {
+        color: var(--accent-green);
+    }
+
 .selectable-row {
     cursor: pointer;
 }
@@ -166,8 +188,8 @@ body {
         background-color: rgba(57, 211, 83, 0.08);
     }
 
-.filler-row td {
-    height: 2.2rem;
+.selected-row {
+    background-color: rgba(57, 211, 83, 0.15);
 }
 
 .form-check-input.toggle-switch-green:checked {
@@ -180,8 +202,12 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(57, 211, 83, 0.25);
 }
 
-.selected-row {
-    background-color: rgba(57, 211, 83, 0.15);
+.indexer-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .submit-card,
