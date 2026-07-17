@@ -34,10 +34,14 @@ namespace SwagBagger.Services
             // Read Prowlarr connection settings from configuration
             string baseUrl = configuration["Prowlarr:BaseUrl"] ?? throw new InvalidOperationException("Prowlarr:BaseUrl is not configured.");
             string apiKey = configuration["Prowlarr:ApiKey"] ?? throw new InvalidOperationException("Prowlarr:ApiKey is not configured.");
+            int[] categories = configuration.GetSection("Prowlarr:Categories").Get<int[]>() ?? throw new InvalidOperationException("Prowlarr:Categories is not configured.");
+
+            // Build the category filter from the configured category codes, restricting results to the allowed categories only
+            string categoryParams = string.Join("&", categories.Select(category => $"categories={category}"));
 
             // Build and send the search request against Prowlarr's search endpoint
             string encodedQuery = Uri.EscapeDataString(query);
-            using HttpRequestMessage request = new(HttpMethod.Get, $"{baseUrl}/api/v1/search?query={encodedQuery}&type=search");
+            using HttpRequestMessage request = new(HttpMethod.Get, $"{baseUrl}/api/v1/search?query={encodedQuery}&type=search&{categoryParams}");
             request.Headers.Add("X-Api-Key", apiKey);
             HttpResponseMessage response = await HttpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
