@@ -155,7 +155,10 @@
     <h2>Downloads</h2>
 
     @{
-        List<TorrentInfo> displayTorrents = TorrentMonitorService.GetDisplayTorrents().ToList();
+        List<TorrentInfo> displayTorrents = TorrentMonitorService.GetDisplayTorrents()
+            .OrderBy(torrent => GetSortPriority(torrent))
+            .ThenByDescending(torrent => TorrentMonitorService.IsMoving(torrent.Hash) ? TorrentMonitorService.GetMoveProgress(torrent.Hash) : torrent.Progress)
+            .ToList();
     }
 
     @if (displayTorrents.Count == 0)
@@ -604,6 +607,19 @@
         "stalledDL" => "Stalled",
         _ => state
     };
+
+    /// <summary>
+    /// Returns a sort priority for a torrent's row: moving torrents first, then actively downloading torrents, then everything else.
+    /// </summary>
+    /// <param name="torrent">The torrent to prioritize.</param>
+    private int GetSortPriority(TorrentInfo torrent)
+    {
+        if (TorrentMonitorService.IsMoving(torrent.Hash))
+        {
+            return 0;
+        }
+        return torrent.State is "downloading" or "metaDL" or "forcedDL" ? 1 : 2;
+    }
 
     /// <summary>
     /// Formats a byte count as a human-readable size string, e.g. "1.4 GB".
