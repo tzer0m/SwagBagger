@@ -11,10 +11,10 @@ namespace SwagBagger.Services
     /// </remarks>
     /// <param name="qBittorrentClient">Client used to query qBittorrent for torrent status.</param>
     /// <param name="tingClient">Client used to send completion notifications.</param>
-    /// <param name="plexClient">Client used to interact with Plex.</param>
+    /// <param name="jellyfinClient">Client used to interact with Jellyfin.</param>
     /// <param name="logger">Logger for this service.</param>
     /// <param name="configuration">Configuration for the service.</param>
-    public class TorrentMonitorService(QBittorrentClient qBittorrentClient, TingClient tingClient, PlexClient plexClient, ILogger<TorrentMonitorService> logger, IConfiguration configuration) : BackgroundService
+    public class TorrentMonitorService(QBittorrentClient qBittorrentClient, TingClient tingClient, JellyfinClient jellyfinClient, ILogger<TorrentMonitorService> logger, IConfiguration configuration) : BackgroundService
     {
         /// <summary>
         /// Tracks hashes of torrents that have already been processed, so they are not handled more than once.
@@ -22,7 +22,7 @@ namespace SwagBagger.Services
         private readonly HashSet<string> ProcessedHashes = [];
 
         /// <summary>
-        /// Maps a torrent's hash to its pre-built Plex destination folder, registered at submission time by <see cref="RegisterDestination"/>.
+        /// Maps a torrent's hash to its pre-built media destination folder, registered at submission time by <see cref="RegisterDestination"/>.
         /// </summary>
         private readonly Dictionary<string, string> DestinationsByHash = [];
 
@@ -52,10 +52,10 @@ namespace SwagBagger.Services
         public event Action? StatusChanged;
 
         /// <summary>
-        /// Registers the intended Plex destination folder and submitted display name for a torrent, keyed by its info hash, so it can be moved there once complete.
+        /// Registers the intended media destination folder and submitted display name for a torrent, keyed by its info hash, so it can be moved there once complete.
         /// </summary>
         /// <param name="hash">The torrent's info hash, as returned by qBittorrent when the magnet was added.</param>
-        /// <param name="destinationPath">The pre-built Plex destination folder from <see cref="MediaPathBuilder"/>.</param>
+        /// <param name="destinationPath">The pre-built media destination folder from <see cref="MediaPathBuilder"/>.</param>
         /// <param name="displayName">The name entered on the submission form.</param>
         public void RegisterDestination(string hash, string destinationPath, string displayName)
         {
@@ -142,7 +142,7 @@ namespace SwagBagger.Services
         }
 
         /// <summary>
-        /// Stops seeding a completed torrent immediately, then moves its files to the registered Plex destination and cleans up the source.
+        /// Stops seeding a completed torrent immediately, then moves its files to the registered media destination and cleans up the source.
         /// </summary>
         /// <param name="torrent">The completed torrent to handle.</param>
         private async Task HandleCompletedTorrentAsync(TorrentInfo torrent)
@@ -172,7 +172,7 @@ namespace SwagBagger.Services
                 MoveProgressByHash[torrent.Hash] = 0;
                 StatusChanged?.Invoke();
 
-                // Copy the files to the registered Plex destination, tracking progress against the torrent's known size, then delete the local source once the copy has succeeded
+                // Copy the files to the registered media destination, tracking progress against the torrent's known size, then delete the local source once the copy has succeeded
                 Directory.CreateDirectory(destinationFolder);
                 using CancellationTokenSource progressCts = new();
                 Task progressTask = TrackMoveProgressAsync(torrent.Hash, targetPath, torrent.Size, progressCts.Token);
@@ -211,14 +211,14 @@ namespace SwagBagger.Services
                 MoveProgressByHash[torrent.Hash] = 1;
                 logger.LogInformation("Moved completed torrent {Name} to {TargetPath}.", displayName, targetPath);
 
-                // Trigger a Plex library scan for whichever library the file was moved into
+                // Trigger a Jellyfin library scan for whichever library the file was moved into
                 if (destinationFolder.Contains("/Movies/"))
                 {
-                    await plexClient.RefreshMoviesAsync();
+                    await jellyfinClient.RefreshMoviesAsync();
                 }
                 else if (destinationFolder.Contains("/TV/"))
                 {
-                    await plexClient.RefreshTvAsync();
+                    await jellyfinClient.RefreshTvAsync();
                 }
                 await tingClient.SendAsync("Download complete", $"{displayName} has finished downloading and been moved.");
             }

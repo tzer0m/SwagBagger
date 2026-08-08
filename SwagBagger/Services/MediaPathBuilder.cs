@@ -3,7 +3,7 @@
 namespace SwagBagger.Services
 {
     /// <summary>
-    /// Builds Plex-compliant destination folder paths for movies and TV shows from user-supplied form input.
+    /// Builds Jellyfin-compliant destination folder paths for movies and TV shows from user-supplied form input.
     /// </summary>
     public partial class MediaPathBuilder(IConfiguration configuration)
     {

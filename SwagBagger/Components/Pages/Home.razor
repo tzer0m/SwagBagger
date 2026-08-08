@@ -509,7 +509,7 @@
     }
 
     /// <summary>
-    /// Extracts the magnet link's hash, builds the Plex destination path, adds the magnet to qBittorrent, and registers the destination for later use by the background monitor.
+    /// Extracts the magnet link's hash, builds the Jellyfin destination path, adds the magnet to qBittorrent, and registers the destination for later use by the background monitor.
     /// </summary>
     private async Task SubmitAsync()
     {
@@ -523,7 +523,7 @@
             return;
         }
 
-        // Build the Plex-compliant destination folder based on the selected media type
+        // Build the Jellyfin-compliant destination folder based on the selected media type
         string destinationPath = SelectedType == MediaType.Movie ? MediaPathBuilder.BuildMoviePath(MovieName, MovieYear) : MediaPathBuilder.BuildTvPath(ShowName, SeasonNumber);
 
         // Add the magnet to qBittorrent and register where it should end up once complete
