@@ -92,6 +92,15 @@ body {
     fill: currentColor;
 }
 
+.prowlarr-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: currentColor;
+    -webkit-mask: url('prowlarr.svg') no-repeat center / contain;
+    mask: url('prowlarr.svg') no-repeat center / contain;
+}
+
 /* ==========================================================================
    Login.razor
    ========================================================================== */
