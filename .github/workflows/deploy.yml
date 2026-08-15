@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, tzer0m]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
