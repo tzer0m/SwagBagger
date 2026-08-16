@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Otp.NET" Version="1.4.1" />
-    <PackageReference Include="t0m.Ting" Version="1.0.4" />
+    <PackageReference Include="t0m.Ting" Version="1.0.5" />
   </ItemGroup>
 
   <ItemGroup>
