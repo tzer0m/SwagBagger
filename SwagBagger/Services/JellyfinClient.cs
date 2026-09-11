@@ -48,7 +48,7 @@ namespace SwagBagger.Services
 
             // Send the refresh request
             using HttpRequestMessage request = new(HttpMethod.Post, $"{baseUrl}/Items/{libraryId}/Refresh?Recursive=true&ImageRefreshMode=Default&MetadataRefreshMode=Default&ReplaceAllMetadata=false&ReplaceAllImages=false");
-            request.Headers.Add("X-Emby-Token", apiKey);
+            request.Headers.Add("Authorization", $"MediaBrowser Client=\"SwagBagger\", Device=\"SwagBagger\", DeviceId=\"swagbagger-01\", Version=\"1.0.0\", Token=\"{apiKey}\"");
             HttpResponseMessage response = await HttpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
         }
