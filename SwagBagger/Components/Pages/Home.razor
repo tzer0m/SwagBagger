@@ -36,7 +36,49 @@
 
         @if (SearchResults.Count > 0)
         {
-            <div class="table-responsive mb-3">
+            <div class="results-sort-bar mb-3">
+                <label for="resultsSort" class="form-label mb-0">Sort by</label>
+                <select id="resultsSort" class="form-select form-select-sm" value="@SortColumn" @onchange="ChangeSortColumn">
+                    <option value="Seeders">Seeders</option>
+                    <option value="Leechers">Leechers</option>
+                    <option value="Size">Size</option>
+                    <option value="Indexer">Indexer</option>
+                    <option value="Title">Title</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ToggleSortDirection" title="Toggle sort direction">@(SortDescending ? "▼" : "▲")</button>
+            </div>
+
+            <div class="results-list mb-3">
+                @foreach (TorrentSearchResult result in PagedResults)
+                {
+                    <div class="result-item @(IsSelected(result) ? "result-item-selected" : "")" @onclick="() => SelectResult(result)">
+                        <div class="download-field mb-2">
+                            <span class="download-label">Title</span>
+                            <span class="result-title">@result.Title</span>
+                        </div>
+                        <div class="result-item-stats">
+                            <div class="download-field">
+                                <span class="download-label">Indexer</span>
+                                <span class="download-value"><span class="indexer-badge" style="@GetIndexerBadgeStyle(result.Indexer)">@result.Indexer</span></span>
+                            </div>
+                            <div class="download-field">
+                                <span class="download-label">Size</span>
+                                <span class="download-value">@FormatBytes(result.Size)</span>
+                            </div>
+                            <div class="download-field">
+                                <span class="download-label">Seed</span>
+                                <span class="download-value">@result.Seeders</span>
+                            </div>
+                            <div class="download-field">
+                                <span class="download-label">Leech</span>
+                                <span class="download-value">@result.Leechers</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="table-responsive results-table-wrapper mb-3">
                 <table class="table table-sm table-hover results-table">
                     <colgroup>
                         <col style="width: 45%;" />
@@ -467,6 +509,25 @@
             SortColumn = column;
             SortDescending = true;
         }
+        CurrentPage = 0;
+    }
+
+    /// <summary>
+    /// Changes the sort column from the mobile sort dropdown and resets to the first page.
+    /// </summary>
+    /// <param name="args">The change event containing the selected column name.</param>
+    private void ChangeSortColumn(ChangeEventArgs args)
+    {
+        SortColumn = args.Value?.ToString() ?? "Seeders";
+        CurrentPage = 0;
+    }
+
+    /// <summary>
+    /// Reverses the current sort direction and resets to the first page.
+    /// </summary>
+    private void ToggleSortDirection()
+    {
+        SortDescending = !SortDescending;
         CurrentPage = 0;
     }
 

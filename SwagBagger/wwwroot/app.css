@@ -211,6 +211,83 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(57, 211, 83, 0.25);
 }
 
+/* Search results: stacked cards on small screens, table from md upwards */
+.results-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+    .results-sort-bar .form-select {
+        width: auto;
+        flex: 1;
+    }
+
+.results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.result-item {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+    .result-item:active {
+        background-color: rgba(57, 211, 83, 0.08);
+    }
+
+.result-item-selected {
+    background-color: rgba(57, 211, 83, 0.15);
+    border-color: var(--accent-green-dim);
+}
+
+.result-title {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.result-item-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+}
+
+    .result-item-stats .download-value {
+        font-size: 0.95rem;
+    }
+
+.results-table-wrapper {
+    display: none;
+}
+
+@media (min-width: 400px) {
+    .result-item-stats {
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+    }
+}
+
+@media (min-width: 768px) {
+    .results-sort-bar,
+    .results-list {
+        display: none;
+    }
+
+    .results-table-wrapper {
+        display: block;
+    }
+}
+
 .indexer-badge {
     display: inline-block;
     padding: 0.2rem 0.6rem;
