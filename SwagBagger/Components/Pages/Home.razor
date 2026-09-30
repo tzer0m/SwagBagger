@@ -301,6 +301,12 @@
     private bool ManualEntry { get; set; }
 
     /// <summary>
+    /// A search term passed in the URL, e.g. ?query=Die Hard 1988 from MMDb, which fills the search box and runs the search on load.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "query")]
+    public string? Query { get; set; }
+
+    /// <summary>
     /// The term currently entered in the torrent search box.
     /// </summary>
     private string SearchQuery { get; set; } = string.Empty;
@@ -370,11 +376,28 @@
     // ── Lifecycle ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Subscribes to torrent status updates so the page redraws whenever the background monitor polls qBittorrent or a move starts or finishes.
+    /// Subscribes to torrent status updates so the page redraws whenever the background monitor polls qBittorrent or a move starts or finishes, and fills the search box from the URL.
     /// </summary>
     protected override void OnInitialized()
     {
         TorrentMonitorService.StatusChanged += HandleStatusChanged;
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            SearchQuery = Query.Trim();
+        }
+    }
+
+    /// <summary>
+    /// Runs the search passed in the URL once the page is interactive, so it only runs once rather than again during prerendering.
+    /// </summary>
+    /// <param name="firstRender">Whether this is the first interactive render.</param>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrWhiteSpace(Query))
+        {
+            await SearchAsync();
+            StateHasChanged();
+        }
     }
 
     /// <summary>
