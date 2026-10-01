@@ -14,6 +14,12 @@ namespace SwagBagger.Models
         public string Hash { get; init; } = string.Empty;
 
         /// <summary>
+        /// The torrent's BitTorrent v1 info hash, which stays the same when qBittorrent switches a hybrid v1/v2 torrent's <see cref="Hash"/> to its v2 hash.
+        /// </summary>
+        [JsonPropertyName("infohash_v1")]
+        public string InfohashV1 { get; init; } = string.Empty;
+
+        /// <summary>
         /// The display name of the torrent.
         /// </summary>
         [JsonPropertyName("name")]

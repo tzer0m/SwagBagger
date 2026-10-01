@@ -78,8 +78,14 @@ namespace SwagBagger.Services
         /// <summary>
         /// Returns the display name entered on the submission form for the given torrent, or null if none was registered.
         /// </summary>
-        /// <param name="hash">The torrent's info hash.</param>
-        public string? GetDisplayName(string hash) => DisplayNamesByHash.GetValueOrDefault(hash);
+        /// <param name="torrent">The torrent.</param>
+        public string? GetDisplayName(TorrentInfo torrent) => DisplayNamesByHash.GetValueOrDefault(GetRegistrationKey(torrent));
+
+        /// <summary>
+        /// Returns the hash a torrent was registered under: its current hash, or its v1 hash for a hybrid v1/v2 torrent whose hash qBittorrent switched to the v2 hash after loading its metadata.
+        /// </summary>
+        /// <param name="torrent">The torrent.</param>
+        private string GetRegistrationKey(TorrentInfo torrent) => !DestinationsByHash.ContainsKey(torrent.Hash) && !string.IsNullOrEmpty(torrent.InfohashV1) && DestinationsByHash.ContainsKey(torrent.InfohashV1) ? torrent.InfohashV1 : torrent.Hash;
 
         /// <summary>
         /// Returns torrents currently being moved, merged with the live qBittorrent list, so rows stay visible after being removed from qBittorrent.
@@ -148,7 +154,8 @@ namespace SwagBagger.Services
         private async Task HandleCompletedTorrentAsync(TorrentInfo torrent)
         {
             // Get torrent display name
-            string displayName = DisplayNamesByHash.GetValueOrDefault(torrent.Hash, torrent.Name);
+            string registrationKey = GetRegistrationKey(torrent);
+            string displayName = DisplayNamesByHash.GetValueOrDefault(registrationKey, torrent.Name);
 
             try
             {
@@ -156,7 +163,7 @@ namespace SwagBagger.Services
                 await qBittorrentClient.DeleteTorrentAsync(torrent.Hash);
 
                 // Check if a destination has been registered for this torrent
-                if (!DestinationsByHash.TryGetValue(torrent.Hash, out string? destinationFolder))
+                if (!DestinationsByHash.TryGetValue(registrationKey, out string? destinationFolder))
                 {
                     logger.LogWarning("Completed torrent {Name} has no registered destination, leaving files in place.", displayName);
                     await tingClient.SendAsync("Download move failed", $"{displayName} finished but had no registered destination.");
