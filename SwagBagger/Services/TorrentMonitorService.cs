@@ -166,7 +166,7 @@ namespace SwagBagger.Services
                 if (!DestinationsByHash.TryGetValue(registrationKey, out string? destinationFolder))
                 {
                     logger.LogWarning("Completed torrent {Name} has no registered destination, leaving files in place.", displayName);
-                    await tingClient.SendAsync("Download move failed", $"{displayName} finished but had no registered destination.");
+                    await tingClient.SendAsync("SwagBagger: Download Move Failed", $"{displayName} finished but had no registered destination.");
                     return;
                 }
 
@@ -198,7 +198,7 @@ namespace SwagBagger.Services
                     else
                     {
                         logger.LogWarning("Completed torrent {Name} not found at expected path {SourcePath}.", displayName, translatedSourcePath);
-                        await tingClient.SendAsync("Download move failed", $"{displayName} finished but its files could not be found at the expected path.");
+                        await tingClient.SendAsync("SwagBagger: Download Move Failed", $"{displayName} finished but its files could not be found at the expected path.");
                         return;
                     }
                 }
@@ -227,12 +227,12 @@ namespace SwagBagger.Services
                 {
                     await jellyfinClient.RefreshTvAsync();
                 }
-                await tingClient.SendAsync("Download complete", $"{displayName} has finished downloading and been moved.");
+                await tingClient.SendAsync("SwagBagger: Download Complete", $"{displayName} has finished downloading and been moved.");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Failed to move completed torrent {Name}.", displayName);
-                await tingClient.SendAsync("Download move failed", $"{displayName} finished but could not be moved: {ex.Message}");
+                await tingClient.SendAsync("SwagBagger: Download Move Failed", $"{displayName} finished but could not be moved: {ex.Message}");
             }
             finally
             {
