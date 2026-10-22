@@ -764,8 +764,19 @@
     }
 
     /// <summary>
-    /// Formats a byte-per-second speed as a human-readable string, e.g. "1.4 MB/s".
+    /// Formats a byte-per-second speed as a human-readable bit rate using decimal units, matching how broadband speeds are quoted, e.g. "45.2Mbps".
     /// </summary>
     /// <param name="bytesPerSecond">The speed in bytes per second.</param>
-    private static string FormatSpeed(long bytesPerSecond) => $"{FormatBytes(bytesPerSecond)}/s";
+    private static string FormatSpeed(long bytesPerSecond)
+    {
+        string[] units = ["bps", "Kbps", "Mbps", "Gbps"];
+        double speed = bytesPerSecond * 8d;
+        int unitIndex = 0;
+        while (speed >= 1000 && unitIndex < units.Length - 1)
+        {
+            speed /= 1000;
+            unitIndex++;
+        }
+        return $"{speed:0.#}{units[unitIndex]}";
+    }
 }
