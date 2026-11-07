@@ -4,6 +4,9 @@ on:
     branches:
       - master
   workflow_dispatch:
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: [self-hosted, tzer0m]
