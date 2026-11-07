@@ -1,6 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: "nuget"
+    assignees:
+      - "tomoddy"
     directory: "/"
     schedule:
       interval: "weekly"
