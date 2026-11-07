@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.14" />
-    <PackageReference Include="t0m.Ting" Version="1.0.5" />
+    <PackageReference Include="t0m.Ting" Version="1.1.0" />
   </ItemGroup>
 
   <ItemGroup>
